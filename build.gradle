@@ -61,8 +61,9 @@ subprojects {
         useJUnitPlatform()
     }
 
-    // Skip boot jar for common modules
-    if (project.name.startsWith('common-')) {
+    // Skip boot jar for common and infrastructure parent modules
+    if (project.name.startsWith('common-') || project.name == 'common' ||
+        project.name == 'infrastructure' || project.name == 'services') {
         tasks.named('bootJar') {
             enabled = false
         }
@@ -78,6 +79,7 @@ project(':common:common-domain') {
         implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
         implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
         implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'com.fasterxml.jackson.core:jackson-annotations'
     }
 }
 
@@ -85,6 +87,7 @@ project(':common:common-event') {
     dependencies {
         implementation project(':common:common-domain')
         implementation 'org.springframework.kafka:spring-kafka'
+        implementation 'org.springframework.boot:spring-boot-starter-data-redis'
         implementation 'com.fasterxml.jackson.core:jackson-databind'
         implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     }
@@ -160,8 +163,4 @@ project(':infrastructure:iot-simulator') {
         implementation 'org.springframework.boot:spring-boot-starter-webflux'
         implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
     }
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '8.11'
 }
