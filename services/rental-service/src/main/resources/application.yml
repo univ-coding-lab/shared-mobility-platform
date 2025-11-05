@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: rental-service
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/rental_service_db
+    username: ${POSTGRES_USER:smpuser}
+    password: ${POSTGRES_PASSWORD:smppass}
+  jpa:
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: rental-service-group
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redispass}
+server:
+  port: ${RENTAL_SERVICE_PORT:8083}
+  servlet:
+    context-path: /api/v1
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

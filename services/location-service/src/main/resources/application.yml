@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: location-service
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_ROOT_USER:root}:${MONGO_ROOT_PASSWORD:rootpass}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/iot_logs?authSource=admin
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:redispass}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    consumer:
+      group-id: location-service-group
+server:
+  port: ${LOCATION_SERVICE_PORT:8084}
+  servlet:
+    context-path: /api/v1
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
