@@ -1,40 +1,167 @@
+buildscript {
+    ext {
+        springBootVersion = '3.5.7'
+        springCloudVersion = '2024.0.0'
+        springDependencyManagementVersion = '1.1.7'
+        lombokVersion = '1.18.36'
+        javaVersion = 21
+    }
+}
+
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.7'
-    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.springframework.boot' version "${springBootVersion}" apply false
+    id 'io.spring.dependency-management' version "${springDependencyManagementVersion}" apply false
 }
 
 group = 'com.next'
 version = '0.0.1-SNAPSHOT'
-description = 'shared-mobility-platform'
+description = 'Shared Mobility Platform - Event-Driven Microservices Architecture'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+allprojects {
+    repositories {
+        mavenCentral()
     }
 }
 
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(javaVersion)
+        }
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    dependencies {
+        // Lombok
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+        // Testing
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    // Skip boot jar for common modules
+    if (project.name.startsWith('common-')) {
+        tasks.named('bootJar') {
+            enabled = false
+        }
+        tasks.named('jar') {
+            enabled = true
+        }
     }
 }
 
-repositories {
-    mavenCentral()
+// Common modules configuration
+project(':common:common-domain') {
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+    }
 }
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+project(':common:common-event') {
+    dependencies {
+        implementation project(':common:common-domain')
+        implementation 'org.springframework.kafka:spring-kafka'
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
+        implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    }
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+project(':common:common-utils') {
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'com.fasterxml.jackson.core:jackson-databind'
+    }
+}
+
+// Service modules configuration
+configure(subprojects.findAll { it.path.startsWith(':services:') }) {
+    dependencies {
+        implementation project(':common:common-domain')
+        implementation project(':common:common-event')
+        implementation project(':common:common-utils')
+
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.kafka:spring-kafka'
+
+        // Database
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+        runtimeOnly 'org.postgresql:postgresql'
+
+        // Monitoring
+        runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    }
+}
+
+// MongoDB for location and battery services
+project(':services:location-service') {
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    }
+}
+
+project(':services:battery-service') {
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    }
+}
+
+// Security for user service
+project(':services:user-service') {
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-security'
+        implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    }
+}
+
+// API Gateway configuration
+project(':infrastructure:api-gateway') {
+    dependencies {
+        implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+        implementation 'org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j'
+        implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+    }
+}
+
+// IoT Simulator configuration
+project(':infrastructure:iot-simulator') {
+    dependencies {
+        implementation project(':common:common-domain')
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-webflux'
+        implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '8.11'
 }

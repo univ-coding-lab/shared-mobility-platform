@@ -36,4 +36,15 @@ out/
 ### VS Code ###
 .vscode/
 
-docs/
+### Environment & Docker ###
+.env
+.env.local
+.env.*.local
+docker-compose.override.yml
+*.log
+logs/
+
+### Database ###
+data/
+*.db
+*.sqlite

@@ -1,1 +1,17 @@
 rootProject.name = 'shared-mobility'
+
+// Common modules
+include 'common:common-domain'
+include 'common:common-event'
+include 'common:common-utils'
+
+// Service modules
+include 'services:user-service'
+include 'services:vehicle-service'
+include 'services:rental-service'
+include 'services:location-service'
+include 'services:battery-service'
+
+// Infrastructure modules
+include 'infrastructure:api-gateway'
+include 'infrastructure:iot-simulator'
