@@ -1,0 +1,114 @@
+package com.next.rentalservice.service;
+
+import com.next.common.domain.enums.RentalStatus;
+import com.next.common.domain.exception.ResourceNotFoundException;
+import com.next.common.domain.model.Rental;
+import com.next.common.event.publisher.EventPublisher;
+import com.next.rentalservice.repository.RentalRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class RentalServiceTest {
+
+    @Mock
+    private RentalRepository rentalRepository;
+
+    @Mock
+    private EventPublisher eventPublisher;
+
+    @InjectMocks
+    private RentalService rentalService;
+
+    private Rental rental;
+
+    @BeforeEach
+    void setUp() {
+        rental = Rental.builder()
+                .userId("user-1")
+                .vehicleId("vehicle-1")
+                .status(RentalStatus.ACTIVE)
+                .startLatitude(37.5665)
+                .startLongitude(126.9780)
+                .startBatteryLevel(85)
+                .build();
+        rental.setId("rental-1");
+    }
+
+    @Test
+    void startRental_ShouldCreateRentalAndPublishEvent() {
+        // given
+        when(rentalRepository.save(any(Rental.class))).thenReturn(rental);
+
+        // when
+        Rental result = rentalService.startRental("user-1", "vehicle-1", 37.5665, 126.9780, 85);
+
+        // then
+        assertNotNull(result);
+        assertEquals(RentalStatus.ACTIVE, result.getStatus());
+        verify(rentalRepository).save(any(Rental.class));
+        verify(eventPublisher).publish(anyString(), anyString(), any());
+    }
+
+    @Test
+    void endRental_WithValidId_ShouldCompleteRentalAndPublishEvent() {
+        // given
+        when(rentalRepository.findById("rental-1")).thenReturn(Optional.of(rental));
+        when(rentalRepository.save(any(Rental.class))).thenReturn(rental);
+
+        // when
+        Rental result = rentalService.endRental("rental-1", 37.5700, 126.9800, 60);
+
+        // then
+        assertNotNull(result);
+        verify(rentalRepository).findById("rental-1");
+        verify(rentalRepository).save(rental);
+        verify(eventPublisher).publish(anyString(), anyString(), any());
+    }
+
+    @Test
+    void endRental_WithInvalidId_ShouldThrowResourceNotFoundException() {
+        // given
+        when(rentalRepository.findById("invalid-id")).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(ResourceNotFoundException.class, () ->
+            rentalService.endRental("invalid-id", 37.5700, 126.9800, 60));
+        verify(rentalRepository).findById("invalid-id");
+        verify(eventPublisher, never()).publish(anyString(), anyString(), any());
+    }
+
+    @Test
+    void getRental_WithValidId_ShouldReturnRental() {
+        // given
+        when(rentalRepository.findById("rental-1")).thenReturn(Optional.of(rental));
+
+        // when
+        Rental result = rentalService.getRental("rental-1");
+
+        // then
+        assertNotNull(result);
+        assertEquals("rental-1", result.getId());
+        verify(rentalRepository).findById("rental-1");
+    }
+
+    @Test
+    void getRental_WithInvalidId_ShouldThrowResourceNotFoundException() {
+        // given
+        when(rentalRepository.findById("invalid-id")).thenReturn(Optional.empty());
+
+        // when & then
+        assertThrows(ResourceNotFoundException.class, () -> rentalService.getRental("invalid-id"));
+        verify(rentalRepository).findById("invalid-id");
+    }
+}
