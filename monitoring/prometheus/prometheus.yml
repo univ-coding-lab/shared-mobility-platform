@@ -1,0 +1,93 @@
+global:
+  scrape_interval: 15s # Scrape metrics every 15 seconds
+  evaluation_interval: 15s # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'shared-mobility-platform'
+    environment: 'development'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Load alert rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # User Service
+  - job_name: 'user-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8081']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'user-service'
+
+  # Vehicle Service
+  - job_name: 'vehicle-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['vehicle-service:8082']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'vehicle-service'
+
+  # Rental Service
+  - job_name: 'rental-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['rental-service:8083']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'rental-service'
+
+  # Location Service
+  - job_name: 'location-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['location-service:8084']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'location-service'
+
+  # Battery Service
+  - job_name: 'battery-service'
+    metrics_path: '/api/v1/actuator/prometheus'
+    static_configs:
+      - targets: ['battery-service:8085']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'battery-service'
+
+  # API Gateway
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'api-gateway'
+
+  # IoT Simulator
+  - job_name: 'iot-simulator'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['iot-simulator:8086']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'iot-simulator'

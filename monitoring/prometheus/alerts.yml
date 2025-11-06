@@ -1,0 +1,92 @@
+groups:
+  - name: service_health
+    interval: 30s
+    rules:
+      # Service Down Alert
+      - alert: ServiceDown
+        expr: up{job=~".*-service|api-gateway|iot-simulator"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute"
+
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: (rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      # Slow Response Time Alert
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response time on {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.job }}"
+
+  - name: resource_usage
+    interval: 30s
+    rules:
+      # High Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Heap memory usage is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      # High CPU Usage Alert (if available)
+      - alert: HighCPUUsage
+        expr: system_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+  - name: kafka_health
+    interval: 30s
+    rules:
+      # Kafka Consumer Lag Alert
+      - alert: HighConsumerLag
+        expr: kafka_consumer_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag on {{ $labels.topic }}"
+          description: "Consumer lag is {{ $value }} messages on topic {{ $labels.topic }}"
+
+  - name: database_health
+    interval: 30s
+    rules:
+      # Database Connection Pool Exhaustion
+      - alert: DatabaseConnectionPoolLow
+        expr: (hikaricp_connections_active / hikaricp_connections_max) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool running low on {{ $labels.job }}"
+          description: "Connection pool usage is {{ $value | humanizePercentage }} on {{ $labels.job }}"
+
+      # Slow Database Queries
+      - alert: SlowDatabaseQueries
+        expr: rate(hikaricp_connections_timeout_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection timeouts on {{ $labels.job }}"
+          description: "{{ $labels.job }} is experiencing database connection timeouts"
