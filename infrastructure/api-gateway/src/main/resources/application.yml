@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      # Global CORS configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
+
+      # Circuit breaker configuration
+      default-filters:
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+            methods: GET,POST
+            backoff:
+              firstBackoff: 100ms
+              maxBackoff: 500ms
+              factor: 2
+              basedOnPreviousValue: false
+
+# Server configuration
+server:
+  port: ${API_GATEWAY_PORT:8080}
+
+# Resilience4j Circuit Breaker configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      vehicleServiceCircuitBreaker:
+        baseConfig: default
+      rentalServiceCircuitBreaker:
+        baseConfig: default
+      locationServiceCircuitBreaker:
+        baseConfig: default
+      batteryServiceCircuitBreaker:
+        baseConfig: default
+
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

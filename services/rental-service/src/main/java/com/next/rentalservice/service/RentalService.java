@@ -8,6 +8,8 @@ import com.next.common.event.model.VehicleRentedEvent;
 import com.next.common.event.model.VehicleReturnedEvent;
 import com.next.common.event.publisher.EventPublisher;
 import com.next.rentalservice.repository.RentalRepository;
+import com.next.rentalservice.saga.RentalSaga;
+import com.next.rentalservice.saga.RentalSagaOrchestrator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,9 +22,11 @@ import java.time.LocalDateTime;
 public class RentalService {
     private final RentalRepository rentalRepository;
     private final EventPublisher eventPublisher;
+    private final RentalSagaOrchestrator sagaOrchestrator;
 
     @Transactional
     public Rental startRental(String userId, String vehicleId, Double lat, Double lon, Integer batteryLevel) {
+        // Create rental record
         Rental rental = Rental.builder()
                 .userId(userId)
                 .vehicleId(vehicleId)
@@ -34,8 +38,27 @@ public class RentalService {
                 .build();
 
         rental = rentalRepository.save(rental);
-        log.info("Rental started: {}", rental.getId());
+        log.info("Rental created: rentalId={}, vehicleId={}, userId={}", rental.getId(), vehicleId, userId);
 
+        // Start Saga orchestration for distributed transaction
+        try {
+            RentalSaga saga = sagaOrchestrator.startSaga(rental.getId(), vehicleId, userId);
+            log.info("Saga started: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+
+            // Execute saga steps
+            saga = sagaOrchestrator.executeVehicleReservation(saga);
+            saga = sagaOrchestrator.executePaymentProcessing(saga);
+            saga = sagaOrchestrator.executeVehicleUnlock(saga);
+            saga = sagaOrchestrator.completeSaga(saga);
+
+            log.info("Saga completed: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+
+        } catch (Exception e) {
+            log.error("Saga execution failed: rentalId={}, error={}", rental.getId(), e.getMessage());
+            // Saga orchestrator will handle compensation automatically
+        }
+
+        // Publish event to notify other services
         VehicleRentedEvent event = new VehicleRentedEvent(vehicleId, userId, rental.getId(), lat, lon, batteryLevel);
         eventPublisher.publish(KafkaTopics.VEHICLE_RENTED, vehicleId, event);
 
