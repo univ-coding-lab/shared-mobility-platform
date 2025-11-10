@@ -22,71 +22,71 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # User Service
+  # User Service (running on host machine)
   - job_name: 'user-service'
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['user-service:8081']
+      - targets: ['host.docker.internal:8081']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'user-service'
 
-  # Vehicle Service
+  # Vehicle Service (running on host machine)
   - job_name: 'vehicle-service'
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['vehicle-service:8082']
+      - targets: ['host.docker.internal:8082']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'vehicle-service'
 
-  # Rental Service
+  # Rental Service (running on host machine)
   - job_name: 'rental-service'
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['rental-service:8083']
+      - targets: ['host.docker.internal:8083']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'rental-service'
 
-  # Location Service
+  # Location Service (running on host machine)
   - job_name: 'location-service'
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['location-service:8084']
+      - targets: ['host.docker.internal:8084']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'location-service'
 
-  # Battery Service
+  # Battery Service (running on host machine)
   - job_name: 'battery-service'
-    metrics_path: '/api/v1/actuator/prometheus'
+    metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['battery-service:8085']
+      - targets: ['host.docker.internal:8085']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'battery-service'
 
-  # API Gateway
+  # API Gateway (running on host machine)
   - job_name: 'api-gateway'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['api-gateway:8080']
+      - targets: ['host.docker.internal:8080']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
         replacement: 'api-gateway'
 
-  # IoT Simulator
+  # IoT Simulator (running on host machine)
   - job_name: 'iot-simulator'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['iot-simulator:8086']
+      - targets: ['host.docker.internal:8086']
     relabel_configs:
       - source_labels: [__address__]
         target_label: instance
