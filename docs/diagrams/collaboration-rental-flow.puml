@@ -1,0 +1,263 @@
+@startuml Collaboration Diagram - Vehicle Rental Flow
+
+!define ENTITY_COLOR #E8F5E9
+!define SERVICE_COLOR #E3F2FD
+!define INFRA_COLOR #FFF3E0
+!define EVENT_COLOR #FCE4EC
+
+skinparam object {
+    BackgroundColor<<Entity>> ENTITY_COLOR
+    BackgroundColor<<Service>> SERVICE_COLOR
+    BackgroundColor<<Infra>> INFRA_COLOR
+    BackgroundColor<<Event>> EVENT_COLOR
+    BorderColor Black
+    ArrowColor Black
+}
+
+title Collaboration Diagram: Vehicle Rental Flow\nShows object interactions and message passing patterns
+
+' ============================================
+' OBJECTS (Instances)
+' ============================================
+
+object ":Client" as Client {
+    type = User/Mobile App
+}
+
+object ":RentalController" as RC <<Service>> {
+    endpoint = POST /rentals/start
+}
+
+object ":RentalService" as RS <<Service>> {
+    role = Business Logic
+}
+
+object ":Rental" as Rental <<Entity>> {
+    id = UUID
+    status = ACTIVE
+    startTime = now()
+}
+
+object ":RentalRepository" as RR <<Service>> {
+    database = PostgreSQL
+}
+
+object ":RentalSagaOrchestrator" as SO <<Service>> {
+    role = Distributed Transaction
+}
+
+object ":RentalSaga" as Saga <<Entity>> {
+    id = UUID
+    state = STARTED
+}
+
+object ":RentalSagaRepository" as SR <<Service>> {
+    database = Redis
+    ttl = 24 hours
+}
+
+object ":EventPublisher" as EP <<Service>> {
+    type = KafkaEventPublisher
+}
+
+object ":VehicleRentedEvent" as Event <<Event>> {
+    eventId = UUID
+    vehicleId = UUID
+    userId = UUID
+}
+
+object ":Kafka" as Kafka <<Infra>> {
+    topic = vehicle.rented
+}
+
+object ":VehicleEventListener" as VEL <<Service>> {
+    consumerGroup = shared-mobility-group
+}
+
+object ":IdempotencyChecker" as IC <<Service>> {
+    storage = Redis
+    ttl = 7 days
+}
+
+object ":VehicleService" as VS <<Service>> {
+    role = Vehicle Management
+}
+
+object ":Vehicle" as Vehicle <<Entity>> {
+    id = UUID
+    status = IN_USE
+}
+
+object ":VehicleRepository" as VR <<Service>> {
+    database = PostgreSQL
+}
+
+object ":LocationEventListener" as LEL <<Service>> {
+    consumerGroup = shared-mobility-group
+}
+
+object ":LocationService" as LS <<Service>> {
+    role = GPS Tracking
+}
+
+object ":Location" as Location <<Entity>> {
+    id = UUID
+    source = RENTAL_START
+}
+
+object ":LocationRepository" as LR <<Service>> {
+    database = MongoDB
+}
+
+object ":RedisTemplate" as Cache <<Infra>> {
+    role = Location Cache
+    ttl = 30 seconds
+}
+
+' ============================================
+' RELATIONSHIPS & MESSAGES
+' ============================================
+
+' Phase 1: Synchronous Request
+Client --> RC : "1: POST /rentals/start\n(userId, vehicleId, lat, lon)"
+RC --> RS : "2: startRental(...)"
+
+' Phase 2: Rental Creation
+RS --> Rental : "3: new Rental()\n<create>"
+RS --> RR : "4: save(rental)"
+RR --> RS : "5: rental (saved)"
+
+' Phase 3: Saga Orchestration
+RS --> SO : "6: startSaga(rentalId, vehicleId, userId)"
+SO --> Saga : "7: new RentalSaga()\n<create>"
+SO --> SR : "8: save(saga)"
+SR --> SO : "9: saga (saved in Redis)"
+
+' Saga Steps (Sequential)
+SO --> SO : "10: executeVehicleReservation(saga)\n[state=VEHICLE_RESERVED]"
+SO --> SO : "11: executePaymentProcessing(saga)\n[state=PAYMENT_COMPLETED]"
+SO --> SO : "12: executeVehicleUnlock(saga)\n[state=VEHICLE_UNLOCKED]"
+SO --> SO : "13: completeSaga(saga)\n[state=COMPLETED]"
+
+SO --> RS : "14: saga (completed)"
+
+' Phase 4: Event Publishing
+RS --> Event : "15: new VehicleRentedEvent()\n<create>"
+RS --> EP : "16: publish(VEHICLE_RENTED, event)"
+EP --> Kafka : "17: send(vehicle.rented, event)\n[async]"
+
+RS --> RC : "18: return Rental"
+RC --> Client : "19: 200 OK\nApiResponse<Rental>"
+
+' ============================================
+' Phase 5: ASYNC Event Consumption (Parallel)
+' ============================================
+
+' Vehicle Service Path
+Kafka --> VEL : "20a: consume(VehicleRentedEvent)\n[async, parallel]"
+VEL --> IC : "21a: processIdempotently(eventId)"
+IC --> VEL : "22a: true (first time)"
+VEL --> VS : "23a: updateVehicleStatus(vehicleId, IN_USE)"
+VS --> Vehicle : "24a: setStatus(IN_USE)\n<modify>"
+VS --> VR : "25a: save(vehicle)"
+VR --> VS : "26a: vehicle (updated)"
+VS --> VEL : "27a: success"
+VEL --> Kafka : "28a: acknowledgment.acknowledge()"
+
+' Location Service Path (Parallel)
+Kafka --> LEL : "20b: consume(VehicleRentedEvent)\n[async, parallel]"
+LEL --> IC : "21b: processIdempotently(eventId)"
+IC --> LEL : "22b: true"
+LEL --> Location : "23b: new Location()\n<create>"
+LEL --> LS : "24b: saveLocation(location)"
+LS --> LR : "25b: save(location)"
+LR --> LS : "26b: location (saved in MongoDB)"
+LS --> Cache : "27b: set(location:{vehicleId}, location, 30s)"
+Cache --> LS : "28b: cached"
+LS --> LEL : "29b: success"
+LEL --> Kafka : "30b: acknowledgment.acknowledge()"
+
+' ============================================
+' NOTES
+' ============================================
+
+note right of RS
+  **Orchestration Pattern**
+  RentalService coordinates:
+  - Rental entity creation
+  - Saga orchestration
+  - Event publishing
+
+  Returns immediately after
+  event publish (async)
+end note
+
+note top of Saga
+  **Saga State Machine**
+  STARTED → VEHICLE_RESERVED
+  → PAYMENT_COMPLETED
+  → VEHICLE_UNLOCKED
+  → COMPLETED
+
+  Stored in Redis (24h TTL)
+  for fast access
+end note
+
+note bottom of Kafka
+  **Event Bus**
+  Topic: vehicle.rented
+  Partitions: 3 (by vehicleId)
+  Retention: 7 days
+
+  Multiple consumers
+  process event in parallel
+end note
+
+note left of IC
+  **Idempotency Pattern**
+  Uses Redis SETNX:
+  - Check if event processed
+  - Atomic check-and-set
+  - 7-day TTL
+
+  Prevents duplicate
+  processing with Kafka
+  at-least-once delivery
+end note
+
+note right of Cache
+  **Caching Strategy**
+  Latest location cached
+  for 30 seconds
+
+  Reduces MongoDB reads
+  by ~95% for real-time
+  location queries
+end note
+
+' ============================================
+' LEGEND
+' ============================================
+
+legend right
+  **Message Types:**
+  → Synchronous call (blocking)
+  --> Asynchronous call (non-blocking)
+
+  **Phases:**
+  1-19: Synchronous API flow
+  20a-28a: Async Vehicle Service flow
+  20b-30b: Async Location Service flow
+
+  **Parallelism:**
+  Steps 20a and 20b execute
+  concurrently (Kafka delivers
+  to multiple consumers)
+
+  **Databases:**
+  PostgreSQL: User, Vehicle, Rental
+  MongoDB: Location, Battery
+  Redis: Saga state, Cache, Idempotency
+endlegend
+
+@enduml

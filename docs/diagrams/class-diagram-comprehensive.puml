@@ -1,0 +1,604 @@
+@startuml Shared Mobility Platform - Comprehensive Class Diagram
+
+!define ENTITY_COLOR #E8F5E9
+!define EVENT_COLOR #FFF3E0
+!define SERVICE_COLOR #E3F2FD
+!define INTERFACE_COLOR #F3E5F5
+!define SAGA_COLOR #FCE4EC
+
+skinparam class {
+    BackgroundColor<<Entity>> ENTITY_COLOR
+    BackgroundColor<<Event>> EVENT_COLOR
+    BackgroundColor<<Service>> SERVICE_COLOR
+    BackgroundColor<<Interface>> INTERFACE_COLOR
+    BackgroundColor<<Saga>> SAGA_COLOR
+    BorderColor Black
+    ArrowColor Black
+}
+
+' ============================================
+' BASE ENTITY
+' ============================================
+abstract class BaseEntity <<Entity>> {
+    # id: String {UUID}
+    # createdAt: LocalDateTime
+    # updatedAt: LocalDateTime
+    # version: Long
+    __
+    + getId(): String
+    + getCreatedAt(): LocalDateTime
+}
+
+' ============================================
+' DOMAIN ENTITIES
+' ============================================
+
+class User <<Entity>> {
+    - email: String {unique, indexed}
+    - passwordHash: String
+    - firstName: String
+    - lastName: String
+    - phoneNumber: String
+    - role: UserRole
+    - isActive: Boolean
+    - isVerified: Boolean
+    - verificationToken: String
+    - resetPasswordToken: String
+    - membershipTier: String
+    - totalRentals: Long
+    - totalDistanceKm: Double
+    - walletBalance: Double
+    - lastLoginAt: LocalDateTime
+    __
+    + getFullName(): String
+    + canRent(): boolean
+    + updateLastLogin(): void
+}
+
+class Vehicle <<Entity>> {
+    - serialNumber: String {unique, indexed}
+    - type: VehicleType
+    - status: VehicleStatus
+    - model: String
+    - manufacturer: String
+    - manufacturingYear: Integer
+    - batteryLevel: Integer
+    - lastKnownLatitude: Double
+    - lastKnownLongitude: Double
+    - lastLocationUpdate: LocalDateTime
+    - iotDeviceId: String {unique}
+    - iotProtocol: String
+    - totalDistanceKm: Double
+    - totalRides: Long
+    - notes: String
+    __
+    + isAvailable(): boolean
+    + updateLocation(lat, lon): void
+    + updateBatteryLevel(level): void
+}
+
+class Rental <<Entity>> {
+    - userId: String {FK}
+    - vehicleId: String {FK}
+    - status: RentalStatus
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - startLatitude: Double
+    - startLongitude: Double
+    - endLatitude: Double
+    - endLongitude: Double
+    - distanceKm: Double
+    - durationMinutes: Long
+    - basePrice: BigDecimal
+    - distancePrice: BigDecimal
+    - timePrice: BigDecimal
+    - totalPrice: BigDecimal
+    - paymentId: String
+    - paymentStatus: String
+    - startBatteryLevel: Integer
+    - endBatteryLevel: Integer
+    - notes: String
+    __
+    + calculateDuration(): Long
+    + isActive(): boolean
+    + complete(endLat, endLon, endBattery): void
+}
+
+class Location <<Entity>> {
+    - id: String
+    - vehicleId: String {indexed}
+    - timestamp: LocalDateTime {indexed}
+    - latitude: Double
+    - longitude: Double
+    - coordinates: double[] {GeoJSON}
+    - altitude: Double
+    - speed: Double
+    - heading: Double
+    - accuracy: Double
+    - source: String
+    - isMoving: Boolean
+    - rentalId: String
+    __
+    + {static} of(vehicleId, lat, lon): Location
+    + updateCoordinates(): void
+}
+
+class BatteryLog <<Entity>> {
+    - id: String
+    - vehicleId: String {indexed}
+    - timestamp: LocalDateTime {indexed}
+    - batteryLevel: Integer {indexed}
+    - voltage: Double
+    - current: Double
+    - temperature: Double
+    - cycleCount: Integer
+    - healthStatus: String
+    - isCharging: Boolean
+    - estimatedRangeKm: Long
+    - estimatedTimeToFullCharge: Long
+    - chargingStationId: String
+    - source: String
+    __
+    + isCriticallyLow(): boolean
+    + needsCharging(): boolean
+    + {static} of(vehicleId, level): BatteryLog
+}
+
+' ============================================
+' ENUMERATIONS
+' ============================================
+
+enum UserRole {
+    CUSTOMER
+    SUPPORT
+    OPERATOR
+    ADMIN
+}
+
+enum VehicleType {
+    E_SCOOTER
+    E_BIKE
+    BICYCLE
+    E_MOPED
+    E_SKATEBOARD
+}
+
+enum VehicleStatus {
+    AVAILABLE
+    IN_USE
+    RESERVED
+    MAINTENANCE
+    CHARGING
+    OUT_OF_SERVICE
+    OFFLINE
+}
+
+enum RentalStatus {
+    PENDING
+    ACTIVE
+    PAUSED
+    COMPLETED
+    CANCELLED
+    FAILED
+}
+
+' ============================================
+' EVENTS
+' ============================================
+
+interface DomainEvent <<Interface>> {
+    + getEventId(): String
+    + getEventType(): String
+    + getTimestamp(): LocalDateTime
+}
+
+abstract class BaseEvent <<Event>> {
+    # eventId: String {UUID}
+    # eventType: String
+    # timestamp: LocalDateTime
+    # aggregateId: String
+    # version: String
+    __
+    # BaseEvent(eventType, aggregateId)
+}
+
+class VehicleRentedEvent <<Event>> {
+    - vehicleId: String
+    - userId: String
+    - rentalId: String
+    - startLatitude: Double
+    - startLongitude: Double
+    - batteryLevel: Integer
+}
+
+class VehicleReturnedEvent <<Event>> {
+    - vehicleId: String
+    - userId: String
+    - rentalId: String
+    - endLatitude: Double
+    - endLongitude: Double
+    - batteryLevel: Integer
+    - distanceKm: Double
+    - durationMinutes: Long
+}
+
+class VehicleMovedEvent <<Event>> {
+    - vehicleId: String
+    - latitude: Double
+    - longitude: Double
+    - speed: Double
+    - heading: Double
+    - isMoving: Boolean
+    - rentalId: String
+}
+
+class BatteryLowEvent <<Event>> {
+    - vehicleId: String
+    - batteryLevel: Integer
+    - latitude: Double
+    - longitude: Double
+    - estimatedRangeKm: Long
+}
+
+' ============================================
+' SAGA PATTERN
+' ============================================
+
+class RentalSaga <<Saga>> {
+    - sagaId: String
+    - rentalId: String {indexed}
+    - vehicleId: String {indexed}
+    - userId: String
+    - currentState: SagaState
+    - startedAt: LocalDateTime
+    - completedAt: LocalDateTime
+    - steps: List<SagaStep>
+    - failureReason: String
+    - retryCount: Integer
+    __
+    + addStep(step): void
+    + updateState(state): void
+    + isCompleted(): boolean
+    + hasFailed(): boolean
+}
+
+class SagaStep {
+    - stepName: String
+    - state: String
+    - executedAt: LocalDateTime
+    - success: Boolean
+    - errorMessage: String
+    - compensationAction: String
+}
+
+enum SagaState {
+    STARTED
+    VEHICLE_RESERVED
+    PAYMENT_COMPLETED
+    VEHICLE_UNLOCKED
+    LOCATION_TRACKING_STARTED
+    COMPLETED
+    COMPENSATING
+    PAYMENT_REFUNDED
+    VEHICLE_RELEASED
+    FAILED
+}
+
+' ============================================
+' DTOs
+' ============================================
+
+class "ApiResponse<T>" <<DTO>> {
+    - success: boolean
+    - message: String
+    - data: T
+    - error: ErrorDetails
+    - timestamp: LocalDateTime
+    __
+    + {static} success(data): ApiResponse<T>
+    + {static} error(message): ApiResponse<T>
+}
+
+class LoginRequest <<DTO>> {
+    - email: String
+    - password: String
+}
+
+class RegisterRequest <<DTO>> {
+    - email: String
+    - password: String
+    - firstName: String
+    - lastName: String
+    - phoneNumber: String
+}
+
+class AuthResponse <<DTO>> {
+    - token: String
+    - userId: String
+    - email: String
+    - fullName: String
+}
+
+' ============================================
+' INTERFACES
+' ============================================
+
+interface EventPublisher <<Interface>> {
+    + publish(topic, key, event): void
+    + publishAsync(topic, key, event): CompletableFuture<Void>
+}
+
+interface IoTDevicePort <<Interface>> {
+    + getBatteryLevel(deviceId): int
+    + getLocation(deviceId): Location
+    + lockVehicle(deviceId): void
+    + unlockVehicle(deviceId): void
+}
+
+' ============================================
+' REPOSITORIES (Simplified)
+' ============================================
+
+interface "JpaRepository<T, ID>" <<spring>> {
+    + save(entity): T
+    + findById(id): Optional<T>
+    + findAll(): List<T>
+    + delete(entity): void
+}
+
+interface "MongoRepository<T, ID>" <<spring>> {
+    + save(entity): T
+    + findById(id): Optional<T>
+    + findAll(): List<T>
+}
+
+interface UserRepository <<Repository>> {
+    + findByEmail(email): Optional<User>
+    + existsByEmail(email): boolean
+}
+
+interface VehicleRepository <<Repository>> {
+    + findBySerialNumber(sn): Optional<Vehicle>
+    + findByStatus(status): List<Vehicle>
+}
+
+interface RentalRepository <<Repository>> {
+    + findByUserId(userId): List<Rental>
+    + findByVehicleId(vehicleId): List<Rental>
+}
+
+interface LocationRepository <<Repository>> {
+    + findByVehicleIdOrderByTimestampDesc(vehicleId): List<Location>
+}
+
+interface BatteryLogRepository <<Repository>> {
+    + findByVehicleIdOrderByTimestampDesc(vehicleId): List<BatteryLog>
+}
+
+interface RentalSagaRepository <<Repository>> {
+    + findByRentalId(rentalId): Optional<RentalSaga>
+    + findByCurrentState(state): List<RentalSaga>
+}
+
+' ============================================
+' SERVICES (Key Services Only)
+' ============================================
+
+class RentalService <<Service>> {
+    - rentalRepository: RentalRepository
+    - eventPublisher: EventPublisher
+    - sagaOrchestrator: RentalSagaOrchestrator
+    __
+    + startRental(...): Rental
+    + endRental(rentalId, ...): Rental
+    + getRentalById(id): Rental
+}
+
+class VehicleService <<Service>> {
+    - vehicleRepository: VehicleRepository
+    - iotDevicePort: IoTDevicePort
+    __
+    + updateVehicleStatus(id, status): Vehicle
+    + getAvailableVehicles(): List<Vehicle>
+    + updateLocation(id, lat, lon): void
+}
+
+class LocationService <<Service>> {
+    - locationRepository: LocationRepository
+    - redisTemplate: RedisTemplate
+    __
+    + saveLocation(location): Location
+    + getLatestLocation(vehicleId): Location
+}
+
+class BatteryService <<Service>> {
+    - batteryLogRepository: BatteryLogRepository
+    - eventPublisher: EventPublisher
+    __
+    + saveBatteryLog(log): BatteryLog
+    + checkBatteryLevel(vehicleId): void
+}
+
+class RentalSagaOrchestrator <<Service>> {
+    - sagaRepository: RentalSagaRepository
+    __
+    + startSaga(rentalId, vehicleId, userId): RentalSaga
+    + compensateSaga(saga, reason): RentalSaga
+    - executeVehicleReservation(saga): RentalSaga
+    - executePaymentProcessing(saga): RentalSaga
+    - executeVehicleUnlock(saga): RentalSaga
+}
+
+' ============================================
+' ADAPTERS (Ports & Adapters Pattern)
+' ============================================
+
+class MockIoTAdapter <<Adapter>> {
+    + getBatteryLevel(deviceId): int
+    + getLocation(deviceId): Location
+    + lockVehicle(deviceId): void
+    + unlockVehicle(deviceId): void
+}
+
+class HttpIoTAdapter <<Adapter>> {
+    - restTemplate: RestTemplate
+    - iotApiBaseUrl: String
+    __
+    + getBatteryLevel(deviceId): int
+    + getLocation(deviceId): Location
+    + lockVehicle(deviceId): void
+    + unlockVehicle(deviceId): void
+}
+
+' ============================================
+' EVENT LISTENERS
+' ============================================
+
+class VehicleEventListener <<Consumer>> {
+    - vehicleService: VehicleService
+    - idempotencyChecker: IdempotencyChecker
+    __
+    + handleVehicleRented(event): void
+    + handleVehicleReturned(event): void
+}
+
+class LocationEventListener <<Consumer>> {
+    - locationService: LocationService
+    - idempotencyChecker: IdempotencyChecker
+    __
+    + handleVehicleRented(event): void
+    + handleVehicleReturned(event): void
+    + handleVehicleMoved(event): void
+}
+
+class BatteryEventListener <<Consumer>> {
+    - batteryService: BatteryService
+    __
+    + handleVehicleReturned(event): void
+}
+
+' ============================================
+' UTILITIES
+' ============================================
+
+class IdempotencyChecker <<Utility>> {
+    - redisTemplate: RedisTemplate
+    __
+    + processIdempotently(eventId): boolean
+    - isProcessed(eventId): boolean
+    - markAsProcessed(eventId): boolean
+}
+
+class KafkaEventPublisher <<Publisher>> {
+    - kafkaTemplate: KafkaTemplate
+    __
+    + publish(topic, key, event): void
+    + publishAsync(topic, key, event): CompletableFuture
+}
+
+' ============================================
+' RELATIONSHIPS - INHERITANCE
+' ============================================
+
+BaseEntity <|-- User
+BaseEntity <|-- Vehicle
+BaseEntity <|-- Rental
+
+DomainEvent <|.. BaseEvent
+BaseEvent <|-- VehicleRentedEvent
+BaseEvent <|-- VehicleReturnedEvent
+BaseEvent <|-- VehicleMovedEvent
+BaseEvent <|-- BatteryLowEvent
+
+"JpaRepository<T, ID>" <|-- UserRepository
+"JpaRepository<T, ID>" <|-- VehicleRepository
+"JpaRepository<T, ID>" <|-- RentalRepository
+
+"MongoRepository<T, ID>" <|-- LocationRepository
+"MongoRepository<T, ID>" <|-- BatteryLogRepository
+
+IoTDevicePort <|.. MockIoTAdapter
+IoTDevicePort <|.. HttpIoTAdapter
+
+EventPublisher <|.. KafkaEventPublisher
+
+' ============================================
+' RELATIONSHIPS - ASSOCIATIONS
+' ============================================
+
+User "1" --> "0..*" Rental : rents
+Vehicle "1" --> "0..*" Rental : rented by
+Vehicle "1" --> "0..*" Location : tracked by
+Vehicle "1" --> "0..*" BatteryLog : monitored by
+
+Rental "1" ..> "0..*" Location : references (rentalId)
+Rental "1" <--> "1" RentalSaga : orchestrated by
+
+RentalSaga "1" *-- "0..*" SagaStep : contains
+RentalSaga --> SagaState : has state
+
+User --> UserRole : has role
+Vehicle --> VehicleType : has type
+Vehicle --> VehicleStatus : has status
+Rental --> RentalStatus : has status
+
+' ============================================
+' RELATIONSHIPS - DEPENDENCIES
+' ============================================
+
+RentalService ..> RentalRepository : uses
+RentalService ..> EventPublisher : uses
+RentalService ..> RentalSagaOrchestrator : uses
+
+VehicleService ..> VehicleRepository : uses
+VehicleService ..> IoTDevicePort : uses
+
+LocationService ..> LocationRepository : uses
+
+BatteryService ..> BatteryLogRepository : uses
+BatteryService ..> EventPublisher : uses
+
+RentalSagaOrchestrator ..> RentalSagaRepository : uses
+
+VehicleEventListener ..> VehicleService : calls
+VehicleEventListener ..> IdempotencyChecker : uses
+
+LocationEventListener ..> LocationService : calls
+LocationEventListener ..> IdempotencyChecker : uses
+
+BatteryEventListener ..> BatteryService : calls
+
+KafkaEventPublisher ..|> EventPublisher : implements
+
+' ============================================
+' NOTES
+' ============================================
+
+note top of BaseEntity
+  All domain entities extend BaseEntity
+  for common fields (id, timestamps, version)
+  Uses UUID for id generation
+  Supports optimistic locking with @Version
+end note
+
+note right of RentalSaga
+  Saga Pattern Implementation
+  Stored in Redis with 24h TTL
+  Orchestrates distributed transaction
+  Supports compensation on failure
+end note
+
+note bottom of IoTDevicePort
+  Hexagonal Architecture
+  Port (Interface) allows
+  multiple IoT adapters
+  (Mock, HTTP, MQTT, etc.)
+end note
+
+note left of IdempotencyChecker
+  Ensures at-least-once
+  event processing safety
+  Uses Redis with 7-day TTL
+end note
+
+@enduml
