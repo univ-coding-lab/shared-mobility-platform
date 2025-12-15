@@ -17,8 +17,4 @@ public interface SagaCommand {
     default int getOrder() {
         return 0;
     }
-
-    default boolean supportsAsync() {
-        return false;
-    }
 }
