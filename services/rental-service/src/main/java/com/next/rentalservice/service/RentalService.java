@@ -40,22 +40,20 @@ public class RentalService {
         rental = rentalRepository.save(rental);
         log.info("Rental created: rentalId={}, vehicleId={}, userId={}", rental.getId(), vehicleId, userId);
 
-        // Start Saga orchestration for distributed transaction
+        // Start Saga orchestration for distributed transaction using Command pattern
         try {
-            RentalSaga saga = sagaOrchestrator.startSaga(rental.getId(), vehicleId, userId);
-            log.info("Saga started: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+            RentalSaga saga = sagaOrchestrator.executeSaga(rental.getId(), vehicleId, userId);
 
-            // Execute saga steps
-            saga = sagaOrchestrator.executeVehicleReservation(saga);
-            saga = sagaOrchestrator.executePaymentProcessing(saga);
-            saga = sagaOrchestrator.executeVehicleUnlock(saga);
-            saga = sagaOrchestrator.completeSaga(saga);
-
-            log.info("Saga completed: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+            if (saga.isCompleted()) {
+                log.info("Saga completed successfully: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+            } else if (saga.hasFailed()) {
+                log.warn("Saga failed and compensated: sagaId={}, rentalId={}, reason={}",
+                        saga.getSagaId(), rental.getId(), saga.getFailureReason());
+            }
 
         } catch (Exception e) {
             log.error("Saga execution failed: rentalId={}, error={}", rental.getId(), e.getMessage());
-            // Saga orchestrator will handle compensation automatically
+            // Saga orchestrator handles compensation automatically within executeSaga
         }
 
         // Publish event to notify other services

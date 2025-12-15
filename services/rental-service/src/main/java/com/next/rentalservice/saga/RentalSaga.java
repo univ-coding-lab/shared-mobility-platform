@@ -1,6 +1,7 @@
 package com.next.rentalservice.saga;
 
 import com.next.common.event.saga.SagaState;
+import com.next.rentalservice.saga.model.SagaStepRecord;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,8 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Rental Saga data model for tracking distributed transaction state
- * Stored in Redis for fast access and automatic expiration
+ * Rental Saga data model for tracking distributed transaction state.
+ * Refactored to work with Command pattern using SagaStepRecord.
+ * Stored in Redis for fast access and automatic expiration.
  */
 @Data
 @Builder
@@ -42,7 +44,7 @@ public class RentalSaga {
     private LocalDateTime completedAt;
 
     @Builder.Default
-    private List<SagaStep> steps = new ArrayList<>();
+    private List<SagaStepRecord> steps = new ArrayList<>();
 
     private String failureReason;
 
@@ -51,7 +53,7 @@ public class RentalSaga {
     /**
      * Add a step to the saga
      */
-    public void addStep(SagaStep step) {
+    public void addStep(SagaStepRecord step) {
         if (steps == null) {
             steps = new ArrayList<>();
         }
@@ -61,7 +63,7 @@ public class RentalSaga {
     /**
      * Get the last step
      */
-    public SagaStep getLastStep() {
+    public SagaStepRecord getLastStep() {
         if (steps == null || steps.isEmpty()) {
             return null;
         }
@@ -90,18 +92,16 @@ public class RentalSaga {
     }
 
     /**
-     * Inner class representing a saga step
+     * Get successfully executed step names for compensation tracking.
      */
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SagaStep {
-        private String stepName;
-        private SagaState state;
-        private LocalDateTime executedAt;
-        private boolean success;
-        private String errorMessage;
-        private String compensationAction;
+    public List<String> getSuccessfulStepNames() {
+        if (steps == null) {
+            return List.of();
+        }
+        return steps.stream()
+                .filter(SagaStepRecord::isSuccess)
+                .filter(s -> !s.getStepName().endsWith("_COMPENSATION"))
+                .map(SagaStepRecord::getStepName)
+                .toList();
     }
 }
