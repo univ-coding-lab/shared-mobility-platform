@@ -80,7 +80,7 @@ class LocationEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        locationEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
+        locationEventListener.handleVehicleRented(vehicleRentedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(locationService).saveLocation(locationCaptor.capture());
@@ -100,7 +100,7 @@ class LocationEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        locationEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        locationEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(locationService).saveLocation(locationCaptor.capture());
@@ -120,7 +120,7 @@ class LocationEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        locationEventListener.handleVehicleMoved(vehicleMovedEvent, 0, 100L, acknowledgment);
+        locationEventListener.handleVehicleMoved(vehicleMovedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-789");
         verify(locationService).saveLocation(locationCaptor.capture());
@@ -141,7 +141,7 @@ class LocationEventListenerTest {
 
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        locationEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
+        locationEventListener.handleVehicleRented(vehicleRentedEvent, acknowledgment);
 
         verify(locationService, never()).saveLocation(any());
         verify(acknowledgment).acknowledge();
@@ -154,7 +154,7 @@ class LocationEventListenerTest {
         doThrow(new RuntimeException("Database error")).when(locationService).saveLocation(any());
 
         try {
-            locationEventListener.handleVehicleMoved(vehicleMovedEvent, 0, 100L, acknowledgment);
+            locationEventListener.handleVehicleMoved(vehicleMovedEvent, acknowledgment);
         } catch (RuntimeException e) {
 
         }

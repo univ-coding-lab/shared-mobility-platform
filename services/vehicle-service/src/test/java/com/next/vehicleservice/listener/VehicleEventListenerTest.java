@@ -66,7 +66,7 @@ class VehicleEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doNothing().when(vehicleService).updateVehicleStatus(any(), any());
 
-        vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
+        vehicleEventListener.handleVehicleRented(vehicleRentedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.IN_USE);
@@ -78,7 +78,7 @@ class VehicleEventListenerTest {
 
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
+        vehicleEventListener.handleVehicleRented(vehicleRentedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(vehicleService, never()).updateVehicleStatus(any(), any());
@@ -92,7 +92,7 @@ class VehicleEventListenerTest {
         doThrow(new RuntimeException("Database error")).when(vehicleService).updateVehicleStatus(any(), any());
 
         try {
-            vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
+            vehicleEventListener.handleVehicleRented(vehicleRentedEvent, acknowledgment);
         } catch (RuntimeException e) {
 
         }
@@ -107,7 +107,7 @@ class VehicleEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doNothing().when(vehicleService).updateVehicleStatus(any(), any());
 
-        vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.AVAILABLE);
@@ -119,7 +119,7 @@ class VehicleEventListenerTest {
 
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(vehicleService, never()).updateVehicleStatus(any(), any());
@@ -133,7 +133,7 @@ class VehicleEventListenerTest {
         doThrow(new RuntimeException("Database error")).when(vehicleService).updateVehicleStatus(any(), any());
 
         try {
-            vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+            vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
         } catch (RuntimeException e) {
 
         }

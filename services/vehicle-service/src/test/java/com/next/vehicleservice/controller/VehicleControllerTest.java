@@ -4,16 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.next.common.domain.enums.VehicleStatus;
 import com.next.common.domain.enums.VehicleType;
 import com.next.common.domain.model.Vehicle;
+import com.next.vehicleservice.dto.VehicleRequest;
 import com.next.vehicleservice.service.VehicleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,25 +26,27 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class VehicleControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @Mock
     private VehicleService vehicleService;
+
+    @InjectMocks
+    private VehicleController vehicleController;
 
     private Vehicle vehicle;
     private List<Vehicle> availableVehicles;
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(vehicleController).build();
+        objectMapper = new ObjectMapper();
+
         vehicle = Vehicle.builder()
                 .serialNumber("SN-001")
                 .type(VehicleType.E_SCOOTER)
@@ -70,7 +73,6 @@ class VehicleControllerTest {
 
     @Test
     void getAvailableVehicles_ShouldReturn200WithVehicleList() throws Exception {
-
         when(vehicleService.getAvailableVehicles()).thenReturn(availableVehicles);
 
         mockMvc.perform(get("/vehicles/available"))
@@ -85,7 +87,6 @@ class VehicleControllerTest {
 
     @Test
     void getVehicle_WithValidId_ShouldReturn200() throws Exception {
-
         when(vehicleService.getVehicle("vehicle-1")).thenReturn(vehicle);
 
         mockMvc.perform(get("/vehicles/vehicle-1"))
@@ -98,9 +99,8 @@ class VehicleControllerTest {
     }
 
     @Test
-    void createVehicle_WithValidData_ShouldReturn200() throws Exception {
-
-        Vehicle newVehicle = Vehicle.builder()
+    void createVehicle_WithValidData_ShouldReturn201() throws Exception {
+        VehicleRequest request = VehicleRequest.builder()
                 .serialNumber("SN-NEW")
                 .type(VehicleType.E_SCOOTER)
                 .model("New Model")
@@ -112,8 +112,8 @@ class VehicleControllerTest {
 
         mockMvc.perform(post("/vehicles")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newVehicle)))
-                .andExpect(status().isOk())
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.id").value("vehicle-1"))
                 .andExpect(jsonPath("$.data.status").value("AVAILABLE"));
@@ -121,7 +121,6 @@ class VehicleControllerTest {
 
     @Test
     void lockVehicle_WithValidId_ShouldReturn200() throws Exception {
-
         doNothing().when(vehicleService).lockVehicle(anyString());
 
         mockMvc.perform(post("/vehicles/vehicle-1/lock"))
@@ -132,7 +131,6 @@ class VehicleControllerTest {
 
     @Test
     void unlockVehicle_WithValidId_ShouldReturn200() throws Exception {
-
         doNothing().when(vehicleService).unlockVehicle(anyString());
 
         mockMvc.perform(post("/vehicles/vehicle-1/unlock"))

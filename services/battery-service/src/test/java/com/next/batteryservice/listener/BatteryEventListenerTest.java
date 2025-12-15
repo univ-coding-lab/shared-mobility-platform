@@ -55,7 +55,7 @@ class BatteryEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<BatteryLog> batteryLogCaptor = ArgumentCaptor.forClass(BatteryLog.class);
 
-        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(batteryService).saveBatteryLog(batteryLogCaptor.capture());
@@ -76,7 +76,7 @@ class BatteryEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<BatteryLog> batteryLogCaptor = ArgumentCaptor.forClass(BatteryLog.class);
 
-        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(batteryService).saveBatteryLog(batteryLogCaptor.capture());
 
@@ -92,7 +92,7 @@ class BatteryEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<BatteryLog> batteryLogCaptor = ArgumentCaptor.forClass(BatteryLog.class);
 
-        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(batteryService).saveBatteryLog(batteryLogCaptor.capture());
 
@@ -109,7 +109,7 @@ class BatteryEventListenerTest {
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<BatteryLog> batteryLogCaptor = ArgumentCaptor.forClass(BatteryLog.class);
 
-        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(batteryService).saveBatteryLog(batteryLogCaptor.capture());
 
@@ -123,7 +123,7 @@ class BatteryEventListenerTest {
 
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+        batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
 
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(batteryService, never()).saveBatteryLog(any());
@@ -137,7 +137,7 @@ class BatteryEventListenerTest {
         doThrow(new RuntimeException("Database error")).when(batteryService).saveBatteryLog(any());
 
         try {
-            batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
+            batteryEventListener.handleVehicleReturned(vehicleReturnedEvent, acknowledgment);
         } catch (RuntimeException e) {
 
         }
