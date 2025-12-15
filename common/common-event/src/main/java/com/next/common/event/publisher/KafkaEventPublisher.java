@@ -1,5 +1,6 @@
 package com.next.common.event.publisher;
 
+import com.next.common.event.exception.EventPublishException;
 import com.next.common.event.model.DomainEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,36 +9,47 @@ import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class KafkaEventPublisher implements EventPublisher {
 
+    private static final long PUBLISH_TIMEOUT_SECONDS = 5;
+
     private final KafkaTemplate<String, DomainEvent> kafkaTemplate;
 
     @Override
     public void publish(String topic, DomainEvent event) {
         try {
-            kafkaTemplate.send(topic, event).get();
+            kafkaTemplate.send(topic, event).get(PUBLISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             log.info("Published event {} to topic {}", event.getEventType(), topic);
+        } catch (TimeoutException e) {
+            log.error("Timeout publishing event {} to topic {}", event.getEventType(), topic);
+            throw new EventPublishException("Event publication timed out", e);
         } catch (Exception e) {
             log.error("Failed to publish event {} to topic {}: {}",
                      event.getEventType(), topic, e.getMessage(), e);
-            throw new RuntimeException("Event publication failed", e);
+            throw new EventPublishException("Event publication failed", e);
         }
     }
 
     @Override
     public void publish(String topic, String key, DomainEvent event) {
         try {
-            kafkaTemplate.send(topic, key, event).get();
+            kafkaTemplate.send(topic, key, event).get(PUBLISH_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             log.info("Published event {} to topic {} with key {}",
                     event.getEventType(), topic, key);
+        } catch (TimeoutException e) {
+            log.error("Timeout publishing event {} to topic {} with key {}",
+                     event.getEventType(), topic, key);
+            throw new EventPublishException("Event publication timed out", e);
         } catch (Exception e) {
             log.error("Failed to publish event {} to topic {} with key {}: {}",
                      event.getEventType(), topic, key, e.getMessage(), e);
-            throw new RuntimeException("Event publication failed", e);
+            throw new EventPublishException("Event publication failed", e);
         }
     }
 
@@ -49,7 +61,7 @@ public class KafkaEventPublisher implements EventPublisher {
             if (ex != null) {
                 log.error("Failed to publish event {} to topic {}: {}",
                          event.getEventType(), topic, ex.getMessage(), ex);
-                throw new RuntimeException("Async event publication failed", ex);
+                throw new EventPublishException("Async event publication failed", ex);
             }
             log.info("Async published event {} to topic {}", event.getEventType(), topic);
             return null;
@@ -65,7 +77,7 @@ public class KafkaEventPublisher implements EventPublisher {
             if (ex != null) {
                 log.error("Failed to publish event {} to topic {} with key {}: {}",
                          event.getEventType(), topic, key, ex.getMessage(), ex);
-                throw new RuntimeException("Async event publication failed", ex);
+                throw new EventPublishException("Async event publication failed", ex);
             }
             log.info("Async published event {} to topic {} with key {}",
                     event.getEventType(), topic, key);

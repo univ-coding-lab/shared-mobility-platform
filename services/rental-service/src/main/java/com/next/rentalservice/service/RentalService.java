@@ -1,6 +1,7 @@
 package com.next.rentalservice.service;
 
 import com.next.common.domain.enums.RentalStatus;
+import com.next.common.domain.exception.BusinessException;
 import com.next.common.domain.exception.ResourceNotFoundException;
 import com.next.common.domain.model.Rental;
 import com.next.common.event.config.KafkaTopics;
@@ -40,20 +41,15 @@ public class RentalService {
         rental = rentalRepository.save(rental);
         log.info("Rental created: rentalId={}, vehicleId={}, userId={}", rental.getId(), vehicleId, userId);
 
-        try {
-            RentalSaga saga = sagaOrchestrator.executeSaga(rental.getId(), vehicleId, userId);
+        RentalSaga saga = sagaOrchestrator.executeSaga(rental.getId(), vehicleId, userId);
 
-            if (saga.isCompleted()) {
-                log.info("Saga completed successfully: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
-            } else if (saga.hasFailed()) {
-                log.warn("Saga failed and compensated: sagaId={}, rentalId={}, reason={}",
-                        saga.getSagaId(), rental.getId(), saga.getFailureReason());
-            }
-
-        } catch (Exception e) {
-            log.error("Saga execution failed: rentalId={}, error={}", rental.getId(), e.getMessage());
-
+        if (saga.hasFailed()) {
+            log.error("Saga failed: sagaId={}, rentalId={}, reason={}",
+                    saga.getSagaId(), rental.getId(), saga.getFailureReason());
+            throw new BusinessException("Rental saga failed: " + saga.getFailureReason());
         }
+
+        log.info("Saga completed successfully: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
 
         VehicleRentedEvent event = new VehicleRentedEvent(vehicleId, userId, rental.getId(), lat, lon, batteryLevel);
         eventPublisher.publish(KafkaTopics.VEHICLE_RENTED, vehicleId, event);
