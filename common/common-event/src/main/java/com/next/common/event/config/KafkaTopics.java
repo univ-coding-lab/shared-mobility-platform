@@ -23,6 +23,15 @@ public final class KafkaTopics {
     public static final String MAINTENANCE_REQUIRED = "maintenance.required";
     public static final String MAINTENANCE_COMPLETED = "maintenance.completed";
 
+    // Dead Letter Queue Topics
+    public static final String DLQ_PREFIX = "dlq.";
+    public static final String DLQ_VEHICLE_RENTED = DLQ_PREFIX + VEHICLE_RENTED;
+    public static final String DLQ_VEHICLE_RETURNED = DLQ_PREFIX + VEHICLE_RETURNED;
+    public static final String DLQ_VEHICLE_MOVED = DLQ_PREFIX + VEHICLE_MOVED;
+    public static final String DLQ_BATTERY_LOW = DLQ_PREFIX + BATTERY_LOW;
+    public static final String DLQ_RENTAL_STARTED = DLQ_PREFIX + RENTAL_STARTED;
+    public static final String DLQ_PAYMENT_COMPLETED = DLQ_PREFIX + PAYMENT_COMPLETED;
+
     private KafkaTopics() {
         throw new UnsupportedOperationException("Utility class cannot be instantiated");
     }

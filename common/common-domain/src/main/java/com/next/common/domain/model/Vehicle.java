@@ -1,5 +1,6 @@
 package com.next.common.domain.model;
 
+import com.next.common.domain.constants.BatteryConstants;
 import com.next.common.domain.enums.VehicleStatus;
 import com.next.common.domain.enums.VehicleType;
 import jakarta.persistence.*;
@@ -69,7 +70,7 @@ public class Vehicle extends BaseEntity {
     private String notes;
 
     public boolean isAvailable() {
-        return status == VehicleStatus.AVAILABLE && batteryLevel != null && batteryLevel > 20;
+        return status == VehicleStatus.AVAILABLE && batteryLevel != null && batteryLevel > BatteryConstants.MINIMUM_FOR_RENTAL;
     }
 
     public void updateLocation(Double latitude, Double longitude) {

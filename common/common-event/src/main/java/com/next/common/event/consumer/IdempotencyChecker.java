@@ -36,12 +36,25 @@ public class IdempotencyChecker {
         return false;
     }
 
+    /**
+     * Atomically checks if an event has been processed and marks it as processed if not.
+     * Uses Redis setIfAbsent for thread-safe, race-condition-free operation.
+     *
+     * @param eventId the event ID to check and mark
+     * @return true if this is the first time processing (caller should process),
+     *         false if already processed (caller should skip)
+     */
     public boolean processIdempotently(String eventId) {
-        if (isProcessed(eventId)) {
-            log.info("Skipping duplicate event: {}", eventId);
-            return false;
+        String key = EVENT_PREFIX + eventId;
+        // setIfAbsent is atomic - performs check and set in a single operation
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, "1", TTL);
+
+        if (Boolean.TRUE.equals(result)) {
+            log.debug("Event marked for processing: {}", eventId);
+            return true;
         }
 
-        return markAsProcessed(eventId);
+        log.info("Duplicate event detected, skipping: {}", eventId);
+        return false;
     }
 }

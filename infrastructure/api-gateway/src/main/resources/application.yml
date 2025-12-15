@@ -1,6 +1,10 @@
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cloud:
     gateway:
       routes:
@@ -75,6 +79,12 @@ spring:
             maxAge: 3600
 
       default-filters:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 10
+            redis-rate-limiter.burstCapacity: 20
+            redis-rate-limiter.requestedTokens: 1
+            key-resolver: "#{@userKeyResolver}"
         - name: Retry
           args:
             retries: 3

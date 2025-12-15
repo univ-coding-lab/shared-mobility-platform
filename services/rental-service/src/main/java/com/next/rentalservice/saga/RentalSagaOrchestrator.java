@@ -15,11 +15,17 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RentalSagaOrchestrator {
+
+    private static final long SAGA_TIMEOUT_SECONDS = 30;
+    private static final long COMMAND_TIMEOUT_SECONDS = 10;
 
     private final RentalSagaRepository sagaRepository;
     private final SagaCommandRegistry commandRegistry;
@@ -48,10 +54,22 @@ public class RentalSagaOrchestrator {
         log.info("Saga started: sagaId={}, rentalId={}", sagaId, rentalId);
 
         List<SagaCommand> executedCommands = new ArrayList<>();
+        long sagaStartTime = System.currentTimeMillis();
+        long sagaTimeoutMillis = SAGA_TIMEOUT_SECONDS * 1000;
 
         for (SagaCommand command : commandRegistry.getOrderedCommands()) {
+            // Check overall saga timeout
+            if (System.currentTimeMillis() - sagaStartTime > sagaTimeoutMillis) {
+                log.error("Saga timeout exceeded: sagaId={}, elapsed={}ms", sagaId,
+                        System.currentTimeMillis() - sagaStartTime);
+                return compensate(saga, context, executedCommands, "Saga execution timed out after " + SAGA_TIMEOUT_SECONDS + " seconds");
+            }
+
             try {
-                SagaCommandResult result = command.execute(context);
+                // Execute command with timeout
+                CompletableFuture<SagaCommandResult> future = CompletableFuture.supplyAsync(
+                        () -> command.execute(context));
+                SagaCommandResult result = future.get(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
                 saga.addStep(toStepRecord(result));
                 saga.setCurrentState(result.getResultState());
@@ -64,6 +82,19 @@ public class RentalSagaOrchestrator {
 
                 executedCommands.add(command);
 
+            } catch (TimeoutException e) {
+                log.error("Command timeout: command={}, sagaId={}, timeout={}s",
+                        command.getName(), sagaId, COMMAND_TIMEOUT_SECONDS);
+                return compensate(saga, context, executedCommands,
+                        "Command timed out: " + command.getName() + " (exceeded " + COMMAND_TIMEOUT_SECONDS + "s)");
+            } catch (ExecutionException e) {
+                log.error("Command execution error: {}, sagaId={}", command.getName(), sagaId, e.getCause());
+                return compensate(saga, context, executedCommands,
+                        e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Command interrupted: {}, sagaId={}", command.getName(), sagaId, e);
+                return compensate(saga, context, executedCommands, "Command interrupted: " + command.getName());
             } catch (Exception e) {
                 log.error("Command execution error: {}, sagaId={}", command.getName(), sagaId, e);
                 return compensate(saga, context, executedCommands, e.getMessage());

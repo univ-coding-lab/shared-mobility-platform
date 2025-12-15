@@ -1,5 +1,6 @@
 package com.next.common.domain.model;
 
+import com.next.common.domain.constants.BatteryConstants;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -48,11 +49,11 @@ public class BatteryLog {
     private String source;
 
     public boolean isCriticallyLow() {
-        return batteryLevel != null && batteryLevel < 10;
+        return batteryLevel != null && batteryLevel < BatteryConstants.CRITICALLY_LOW_THRESHOLD;
     }
 
     public boolean needsCharging() {
-        return batteryLevel != null && batteryLevel < 20;
+        return batteryLevel != null && batteryLevel < BatteryConstants.NEEDS_CHARGING_THRESHOLD;
     }
 
     public static BatteryLog of(String vehicleId, Integer level) {
