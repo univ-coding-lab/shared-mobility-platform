@@ -38,29 +38,29 @@ public class RentalService {
                 .startBatteryLevel(batteryLevel)
                 .build();
 
-        rental = rentalRepository.save(rental);
-        log.info("Rental created: rentalId={}, vehicleId={}, userId={}", rental.getId(), vehicleId, userId);
+        final Rental savedRental = rentalRepository.save(rental);
+        log.info("Rental created: rentalId={}, vehicleId={}, userId={}", savedRental.getId(), vehicleId, userId);
 
-        RentalSaga saga = sagaOrchestrator.executeSaga(rental.getId(), vehicleId, userId);
+        RentalSaga saga = sagaOrchestrator.executeSaga(savedRental.getId(), vehicleId, userId);
 
         if (saga.hasFailed()) {
             log.error("Saga failed: sagaId={}, rentalId={}, reason={}",
-                    saga.getSagaId(), rental.getId(), saga.getFailureReason());
+                    saga.getSagaId(), savedRental.getId(), saga.getFailureReason());
             throw new BusinessException("Rental saga failed: " + saga.getFailureReason());
         }
 
-        log.info("Saga completed successfully: sagaId={}, rentalId={}", saga.getSagaId(), rental.getId());
+        log.info("Saga completed successfully: sagaId={}, rentalId={}", saga.getSagaId(), savedRental.getId());
 
         // Async event publishing - fire and forget with error logging
-        VehicleRentedEvent event = new VehicleRentedEvent(vehicleId, userId, rental.getId(), lat, lon, batteryLevel);
+        VehicleRentedEvent event = new VehicleRentedEvent(vehicleId, userId, savedRental.getId(), lat, lon, batteryLevel);
         eventPublisher.publishAsync(KafkaTopics.VEHICLE_RENTED, vehicleId, event)
                 .exceptionally(ex -> {
                     log.error("Failed to publish VehicleRentedEvent asynchronously: rentalId={}, vehicleId={}, error={}",
-                            rental.getId(), vehicleId, ex.getMessage(), ex);
+                            savedRental.getId(), vehicleId, ex.getMessage(), ex);
                     return null;
                 });
 
-        return rental;
+        return savedRental;
     }
 
     @Transactional
@@ -69,22 +69,22 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("Rental", rentalId));
 
         rental.complete(lat, lon, batteryLevel);
-        rental = rentalRepository.save(rental);
-        log.info("Rental completed: {}", rental.getId());
+        final Rental completedRental = rentalRepository.save(rental);
+        log.info("Rental completed: {}", completedRental.getId());
 
         // Async event publishing - fire and forget with error logging
         VehicleReturnedEvent event = new VehicleReturnedEvent(
-                rental.getVehicleId(), rental.getUserId(), rental.getId(),
-                lat, lon, batteryLevel, rental.getDistanceKm(), rental.getDurationMinutes()
+                completedRental.getVehicleId(), completedRental.getUserId(), completedRental.getId(),
+                lat, lon, batteryLevel, completedRental.getDistanceKm(), completedRental.getDurationMinutes()
         );
-        eventPublisher.publishAsync(KafkaTopics.VEHICLE_RETURNED, rental.getVehicleId(), event)
+        eventPublisher.publishAsync(KafkaTopics.VEHICLE_RETURNED, completedRental.getVehicleId(), event)
                 .exceptionally(ex -> {
                     log.error("Failed to publish VehicleReturnedEvent asynchronously: rentalId={}, vehicleId={}, error={}",
-                            rental.getId(), rental.getVehicleId(), ex.getMessage(), ex);
+                            completedRental.getId(), completedRental.getVehicleId(), ex.getMessage(), ex);
                     return null;
                 });
 
-        return rental;
+        return completedRental;
     }
 
     @Transactional(readOnly = true)
