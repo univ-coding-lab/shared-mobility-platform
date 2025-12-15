@@ -5,15 +5,9 @@
 
 set -e
 
-BASE_URL="http://localhost:8083"
+BASE_URL="http://localhost:8083/api/v1"
 TOTAL_REQUESTS=100
 CONCURRENT=100
-
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
 
 echo "============================================"
 echo "Performance Load Test"
@@ -23,7 +17,7 @@ echo ""
 
 # Check if Apache Bench is installed
 if ! command -v ab &> /dev/null; then
-    echo -e "${RED}❌ Apache Bench (ab) is not installed${NC}"
+    echo "❌ Apache Bench (ab) is not installed"
     echo "Install with: brew install apache-bench (macOS)"
     echo "Or use alternative: ./test-load-alternative.sh"
     exit 1
@@ -58,18 +52,18 @@ echo ""
 # Check success criteria
 AVG_TIME_SEC=$(echo "$AVG_TIME / 1000" | bc -l)
 if (( $(echo "$AVG_TIME_SEC < 1.0" | bc -l) )); then
-    echo -e "${GREEN}✓ SUCCESS: Average response time < 1s${NC}"
+    echo "✓ SUCCESS: Average response time < 1s"
     PERF_PASS=true
 else
-    echo -e "${RED}❌ FAIL: Average response time >= 1s${NC}"
+    echo "❌ FAIL: Average response time >= 1s"
     PERF_PASS=false
 fi
 
 if [ "$FAILED" -eq 0 ]; then
-    echo -e "${GREEN}✓ SUCCESS: No failed requests${NC}"
+    echo "✓ SUCCESS: No failed requests"
     FAIL_PASS=true
 else
-    echo -e "${YELLOW}⚠ WARNING: $FAILED requests failed${NC}"
+    echo "⚠ WARNING: $FAILED requests failed"
     FAIL_PASS=false
 fi
 
@@ -80,9 +74,9 @@ echo "Full report saved to: /tmp/ab_result.txt"
 echo ""
 echo "============================================"
 if [ "$PERF_PASS" = true ] && [ "$FAIL_PASS" = true ]; then
-    echo -e "${GREEN}✓ LOAD TEST PASSED ✓${NC}"
+    echo "✓ LOAD TEST PASSED ✓"
     exit 0
 else
-    echo -e "${RED}❌ LOAD TEST FAILED ❌${NC}"
+    echo "❌ LOAD TEST FAILED ❌"
     exit 1
 fi

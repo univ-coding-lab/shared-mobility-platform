@@ -5,12 +5,6 @@
 
 set -e
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
 echo "=========================================="
 echo "Fault Isolation Test"
 echo "Success Criteria: Service independence"
@@ -23,45 +17,45 @@ echo "------------------------------------------"
 
 # Check initial states
 echo "1.1 Checking all services are up..."
-USER_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/actuator/health)
-VEHICLE_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health)
-RENTAL_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/actuator/health)
-LOCATION_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8084/actuator/health)
-BATTERY_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/actuator/health)
+USER_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081/api/v1/actuator/health)
+VEHICLE_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/api/v1/actuator/health)
+RENTAL_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/api/v1/actuator/health)
+LOCATION_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8084/api/v1/actuator/health)
+BATTERY_UP=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8085/api/v1/actuator/health)
 
 if [ "$USER_UP" = "200" ] && [ "$VEHICLE_UP" = "200" ] && [ "$RENTAL_UP" = "200" ] && [ "$LOCATION_UP" = "200" ] && [ "$BATTERY_UP" = "200" ]; then
-    echo -e "${GREEN}✓ All services are UP${NC}"
+    echo "✓ All services are UP"
 else
-    echo -e "${RED}❌ Some services are already DOWN${NC}"
+    echo "❌ Some services are already DOWN"
     exit 1
 fi
 echo ""
 
 # Stop Battery Service (simulated by killing process)
 echo "1.2 Simulating Battery Service failure..."
-echo -e "${YELLOW}⚠ NOTE: In real scenario, stop Battery Service with: kill <PID>${NC}"
-echo -e "${YELLOW}⚠ For this test, we'll continue assuming Battery Service is down${NC}"
+echo "⚠ NOTE: In real scenario, stop Battery Service with: kill <PID>"
+echo "⚠ For this test, we'll continue assuming Battery Service is down"
 echo ""
 
 # Test Rental Service (should still work)
 echo "1.3 Testing Rental Service (should work without Battery Service)..."
-RENTAL_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/actuator/health)
+RENTAL_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8083/api/v1/actuator/health)
 
 if [ "$RENTAL_TEST" = "200" ]; then
-    echo -e "${GREEN}✓ Rental Service continues to operate${NC}"
+    echo "✓ Rental Service continues to operate"
 else
-    echo -e "${RED}❌ Rental Service is affected by Battery Service failure${NC}"
+    echo "❌ Rental Service is affected by Battery Service failure"
 fi
 echo ""
 
 # Test Vehicle Service (should still work)
 echo "1.4 Testing Vehicle Service (should work without Battery Service)..."
-VEHICLE_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/actuator/health)
+VEHICLE_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8082/api/v1/actuator/health)
 
 if [ "$VEHICLE_TEST" = "200" ]; then
-    echo -e "${GREEN}✓ Vehicle Service continues to operate${NC}"
+    echo "✓ Vehicle Service continues to operate"
 else
-    echo -e "${RED}❌ Vehicle Service is affected by Battery Service failure${NC}"
+    echo "❌ Vehicle Service is affected by Battery Service failure"
 fi
 echo ""
 
@@ -70,29 +64,29 @@ echo "Test 2: Rental Service Failure Isolation"
 echo "------------------------------------------"
 
 echo "2.1 Simulating Rental Service failure..."
-echo -e "${YELLOW}⚠ NOTE: In real scenario, stop Rental Service with: kill <PID>${NC}"
+echo "⚠ NOTE: In real scenario, stop Rental Service with: kill <PID>"
 echo ""
 
 # Test Vehicle queries (should still work)
 echo "2.2 Testing Vehicle queries (should work without Rental Service)..."
-VEHICLES=$(curl -s http://localhost:8082/vehicles | jq '. | length' 2>/dev/null || echo "0")
+VEHICLES=$(curl -s http://localhost:8082/api/v1/vehicles | jq '. | length' 2>/dev/null || echo "0")
 
 if [ "$VEHICLES" != "null" ]; then
-    echo -e "${GREEN}✓ Vehicle queries work without Rental Service${NC}"
+    echo "✓ Vehicle queries work without Rental Service"
     echo "  Found $VEHICLES vehicles"
 else
-    echo -e "${RED}❌ Vehicle queries affected by Rental Service failure${NC}"
+    echo "❌ Vehicle queries affected by Rental Service failure"
 fi
 echo ""
 
 # Test Location queries (should still work)
 echo "2.3 Testing Location queries (should work without Rental Service)..."
-LOCATION_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8084/actuator/health)
+LOCATION_TEST=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8084/api/v1/actuator/health)
 
 if [ "$LOCATION_TEST" = "200" ]; then
-    echo -e "${GREEN}✓ Location Service continues to operate${NC}"
+    echo "✓ Location Service continues to operate"
 else
-    echo -e "${RED}❌ Location Service is affected by Rental Service failure${NC}"
+    echo "❌ Location Service is affected by Rental Service failure"
 fi
 echo ""
 
@@ -105,7 +99,7 @@ echo "✓ Event-Driven architecture allows graceful degradation"
 echo "✓ Services operate independently"
 echo "✓ One service failure doesn't cascade to others"
 echo ""
-echo -e "${GREEN}Fault Isolation: VERIFIED ✓${NC}"
+echo "Fault Isolation: VERIFIED ✓"
 echo ""
 echo "💡 To perform actual fault injection:"
 echo "   1. Find service PID: ps aux | grep java"

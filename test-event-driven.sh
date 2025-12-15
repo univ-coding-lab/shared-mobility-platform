@@ -12,12 +12,6 @@ RENTAL_SERVICE_PORT=8083
 LOCATION_SERVICE_PORT=8084
 BATTERY_SERVICE_PORT=8085
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
 echo "========================================="
 echo "Event-Driven Communication Verification"
 echo "========================================="
@@ -29,11 +23,11 @@ check_service() {
     local port=$2
     echo -n "Checking $service_name... "
 
-    if curl -s -o /dev/null -w "%{http_code}" "$BASE_URL:$port/actuator/health" | grep -q "200"; then
-        echo -e "${GREEN}✓ UP${NC}"
+    if curl -s -o /dev/null -w "%{http_code}" "$BASE_URL:$port/api/v1/actuator/health" | grep -q "200"; then
+        echo "✓ UP"
         return 0
     else
-        echo -e "${RED}✗ DOWN${NC}"
+        echo "✗ DOWN"
         return 1
     fi
 }
@@ -51,7 +45,7 @@ echo ""
 # Step 2: Register a test user
 echo "Step 2: Register Test User"
 echo "---------------------------"
-USER_RESPONSE=$(curl -s -X POST "$BASE_URL:$USER_SERVICE_PORT/auth/register" \
+USER_RESPONSE=$(curl -s -X POST "$BASE_URL:$USER_SERVICE_PORT/api/v1/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "testuser",
@@ -62,13 +56,13 @@ USER_RESPONSE=$(curl -s -X POST "$BASE_URL:$USER_SERVICE_PORT/auth/register" \
 
 echo "User registration response: $USER_RESPONSE"
 USER_ID=$(echo $USER_RESPONSE | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "USER123")
-echo -e "${GREEN}✓ User created with ID: $USER_ID${NC}"
+echo "✓ User created with ID: $USER_ID"
 echo ""
 
 # Step 3: Create a test vehicle
 echo "Step 3: Create Test Vehicle"
 echo "----------------------------"
-VEHICLE_RESPONSE=$(curl -s -X POST "$BASE_URL:$VEHICLE_SERVICE_PORT/vehicles" \
+VEHICLE_RESPONSE=$(curl -s -X POST "$BASE_URL:$VEHICLE_SERVICE_PORT/api/v1/vehicles" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "ELECTRIC_SCOOTER",
@@ -82,17 +76,17 @@ VEHICLE_RESPONSE=$(curl -s -X POST "$BASE_URL:$VEHICLE_SERVICE_PORT/vehicles" \
 
 echo "Vehicle creation response: $VEHICLE_RESPONSE"
 VEHICLE_ID=$(echo $VEHICLE_RESPONSE | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "VEH123")
-echo -e "${GREEN}✓ Vehicle created with ID: $VEHICLE_ID${NC}"
+echo "✓ Vehicle created with ID: $VEHICLE_ID"
 echo ""
 
 # Step 4: Start a rental (This triggers VehicleRentedEvent)
 echo "Step 4: Start Rental (Triggers VehicleRentedEvent)"
 echo "---------------------------------------------------"
-RENTAL_START_RESPONSE=$(curl -s -X POST "$BASE_URL:$RENTAL_SERVICE_PORT/rentals/start?userId=$USER_ID&vehicleId=$VEHICLE_ID&lat=37.5665&lon=126.9780&batteryLevel=85")
+RENTAL_START_RESPONSE=$(curl -s -X POST "$BASE_URL:$RENTAL_SERVICE_PORT/api/v1/rentals/start?userId=$USER_ID&vehicleId=$VEHICLE_ID&lat=37.5665&lon=126.9780&batteryLevel=85")
 
 echo "Rental start response: $RENTAL_START_RESPONSE"
 RENTAL_ID=$(echo $RENTAL_START_RESPONSE | grep -o '"id":"[^"]*"' | cut -d'"' -f4 || echo "RENT123")
-echo -e "${GREEN}✓ Rental started with ID: $RENTAL_ID${NC}"
+echo "✓ Rental started with ID: $RENTAL_ID"
 echo ""
 
 # Wait for events to propagate
@@ -103,44 +97,44 @@ echo ""
 # Step 5: Verify Vehicle status changed to IN_USE
 echo "Step 5: Verify Vehicle Status (Should be IN_USE)"
 echo "-------------------------------------------------"
-VEHICLE_STATUS=$(curl -s "$BASE_URL:$VEHICLE_SERVICE_PORT/vehicles/$VEHICLE_ID" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+VEHICLE_STATUS=$(curl -s "$BASE_URL:$VEHICLE_SERVICE_PORT/api/v1/vehicles/$VEHICLE_ID" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 if [ "$VEHICLE_STATUS" = "IN_USE" ]; then
-    echo -e "${GREEN}✓ Vehicle status correctly updated to: $VEHICLE_STATUS${NC}"
+    echo "✓ Vehicle status correctly updated to: $VEHICLE_STATUS"
 else
-    echo -e "${YELLOW}⚠ Vehicle status is: $VEHICLE_STATUS (Expected: IN_USE)${NC}"
+    echo "⚠ Vehicle status is: $VEHICLE_STATUS (Expected: IN_USE)"
 fi
 echo ""
 
 # Step 6: Verify Location was recorded
 echo "Step 6: Verify Location Recorded"
 echo "---------------------------------"
-LOCATION_RESPONSE=$(curl -s "$BASE_URL:$LOCATION_SERVICE_PORT/locations/vehicle/$VEHICLE_ID/latest")
+LOCATION_RESPONSE=$(curl -s "$BASE_URL:$LOCATION_SERVICE_PORT/api/v1/locations/vehicle/$VEHICLE_ID/latest")
 echo "Latest location: $LOCATION_RESPONSE"
 if echo "$LOCATION_RESPONSE" | grep -q "37.5665"; then
-    echo -e "${GREEN}✓ Location correctly recorded${NC}"
+    echo "✓ Location correctly recorded"
 else
-    echo -e "${YELLOW}⚠ Location may not be recorded yet${NC}"
+    echo "⚠ Location may not be recorded yet"
 fi
 echo ""
 
 # Step 7: Verify Battery status was recorded
 echo "Step 7: Verify Battery Status Recorded"
 echo "---------------------------------------"
-BATTERY_RESPONSE=$(curl -s "$BASE_URL:$BATTERY_SERVICE_PORT/battery/vehicle/$VEHICLE_ID/latest")
+BATTERY_RESPONSE=$(curl -s "$BASE_URL:$BATTERY_SERVICE_PORT/api/v1/battery/vehicle/$VEHICLE_ID/latest")
 echo "Latest battery status: $BATTERY_RESPONSE"
 if echo "$BATTERY_RESPONSE" | grep -q "batteryLevel"; then
-    echo -e "${GREEN}✓ Battery status correctly recorded${NC}"
+    echo "✓ Battery status correctly recorded"
 else
-    echo -e "${YELLOW}⚠ Battery status may not be recorded yet${NC}"
+    echo "⚠ Battery status may not be recorded yet"
 fi
 echo ""
 
 # Step 8: End the rental (This triggers VehicleReturnedEvent)
 echo "Step 8: End Rental (Triggers VehicleReturnedEvent)"
 echo "---------------------------------------------------"
-RENTAL_END_RESPONSE=$(curl -s -X POST "$BASE_URL:$RENTAL_SERVICE_PORT/rentals/$RENTAL_ID/return?lat=37.5675&lon=126.9790&batteryLevel=75")
+RENTAL_END_RESPONSE=$(curl -s -X POST "$BASE_URL:$RENTAL_SERVICE_PORT/api/v1/rentals/$RENTAL_ID/return?lat=37.5675&lon=126.9790&batteryLevel=75")
 echo "Rental end response: $RENTAL_END_RESPONSE"
-echo -e "${GREEN}✓ Rental ended${NC}"
+echo "✓ Rental ended"
 echo ""
 
 # Wait for events to propagate
@@ -151,23 +145,23 @@ echo ""
 # Step 9: Verify Vehicle status changed back to AVAILABLE
 echo "Step 9: Verify Vehicle Status (Should be AVAILABLE)"
 echo "----------------------------------------------------"
-VEHICLE_STATUS_AFTER=$(curl -s "$BASE_URL:$VEHICLE_SERVICE_PORT/vehicles/$VEHICLE_ID" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+VEHICLE_STATUS_AFTER=$(curl -s "$BASE_URL:$VEHICLE_SERVICE_PORT/api/v1/vehicles/$VEHICLE_ID" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
 if [ "$VEHICLE_STATUS_AFTER" = "AVAILABLE" ]; then
-    echo -e "${GREEN}✓ Vehicle status correctly updated to: $VEHICLE_STATUS_AFTER${NC}"
+    echo "✓ Vehicle status correctly updated to: $VEHICLE_STATUS_AFTER"
 else
-    echo -e "${YELLOW}⚠ Vehicle status is: $VEHICLE_STATUS_AFTER (Expected: AVAILABLE)${NC}"
+    echo "⚠ Vehicle status is: $VEHICLE_STATUS_AFTER (Expected: AVAILABLE)"
 fi
 echo ""
 
 # Step 10: Verify final location was updated
 echo "Step 10: Verify Return Location Updated"
 echo "----------------------------------------"
-FINAL_LOCATION=$(curl -s "$BASE_URL:$LOCATION_SERVICE_PORT/locations/vehicle/$VEHICLE_ID/latest")
+FINAL_LOCATION=$(curl -s "$BASE_URL:$LOCATION_SERVICE_PORT/api/v1/locations/vehicle/$VEHICLE_ID/latest")
 echo "Final location: $FINAL_LOCATION"
 if echo "$FINAL_LOCATION" | grep -q "37.5675"; then
-    echo -e "${GREEN}✓ Return location correctly recorded${NC}"
+    echo "✓ Return location correctly recorded"
 else
-    echo -e "${YELLOW}⚠ Return location may not match${NC}"
+    echo "⚠ Return location may not match"
 fi
 echo ""
 
@@ -186,7 +180,7 @@ echo "  - Vehicle Service: Status changed to AVAILABLE"
 echo "  - Location Service: Return location recorded"
 echo "  - Battery Service: End battery level recorded"
 echo ""
-echo -e "${GREEN}Event-Driven Architecture: VERIFIED ✓${NC}"
+echo "Event-Driven Architecture: VERIFIED ✓"
 echo ""
 echo "💡 To monitor Kafka topics in real-time:"
 echo "   docker exec -it smp-kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic vehicle_events --from-beginning"
