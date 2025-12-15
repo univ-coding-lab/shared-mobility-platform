@@ -6,7 +6,7 @@
 set -e
 
 BASE_URL="http://localhost:8083/api/v1"
-TOTAL_REQUESTS=100
+TOTAL_REQUESTS=1000
 CONCURRENT=100
 
 echo "============================================"
