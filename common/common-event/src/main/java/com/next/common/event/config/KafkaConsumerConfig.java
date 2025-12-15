@@ -1,5 +1,6 @@
 package com.next.common.event.config;
 
+import com.next.common.event.model.DomainEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
@@ -33,9 +34,9 @@ public class KafkaConsumerConfig {
     @Value("${spring.kafka.consumer.group-id:shared-mobility-group}")
     private String groupId;
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, DomainEvent> kafkaTemplate;
 
-    public KafkaConsumerConfig(KafkaTemplate<String, Object> kafkaTemplate) {
+    public KafkaConsumerConfig(KafkaTemplate<String, DomainEvent> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 

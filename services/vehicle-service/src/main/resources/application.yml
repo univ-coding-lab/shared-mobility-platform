@@ -1,6 +1,9 @@
 spring:
   application:
     name: vehicle-service
+  cloud:
+    compatibility-verifier:
+      enabled: false
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/vehicle_service_db
     username: ${POSTGRES_USER:smpuser}
