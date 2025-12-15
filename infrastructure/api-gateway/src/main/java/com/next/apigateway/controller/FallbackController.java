@@ -12,10 +12,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Fallback controller for circuit breaker
- * Provides graceful degradation when services are unavailable
- */
 @Slf4j
 @RestController
 @RequestMapping("/fallback")
@@ -51,9 +47,6 @@ public class FallbackController {
         return Mono.just(createFallbackResponse("Battery Service"));
     }
 
-    /**
-     * Create a standardized fallback response
-     */
     private ResponseEntity<Map<String, Object>> createFallbackResponse(String serviceName) {
         Map<String, Object> response = new HashMap<>();
         response.put("timestamp", LocalDateTime.now());

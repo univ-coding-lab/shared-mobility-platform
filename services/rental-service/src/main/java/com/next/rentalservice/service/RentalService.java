@@ -26,7 +26,7 @@ public class RentalService {
 
     @Transactional
     public Rental startRental(String userId, String vehicleId, Double lat, Double lon, Integer batteryLevel) {
-        // Create rental record
+
         Rental rental = Rental.builder()
                 .userId(userId)
                 .vehicleId(vehicleId)
@@ -40,7 +40,6 @@ public class RentalService {
         rental = rentalRepository.save(rental);
         log.info("Rental created: rentalId={}, vehicleId={}, userId={}", rental.getId(), vehicleId, userId);
 
-        // Start Saga orchestration for distributed transaction using Command pattern
         try {
             RentalSaga saga = sagaOrchestrator.executeSaga(rental.getId(), vehicleId, userId);
 
@@ -53,10 +52,9 @@ public class RentalService {
 
         } catch (Exception e) {
             log.error("Saga execution failed: rentalId={}, error={}", rental.getId(), e.getMessage());
-            // Saga orchestrator handles compensation automatically within executeSaga
+
         }
 
-        // Publish event to notify other services
         VehicleRentedEvent event = new VehicleRentedEvent(vehicleId, userId, rental.getId(), lat, lon, batteryLevel);
         eventPublisher.publish(KafkaTopics.VEHICLE_RENTED, vehicleId, event);
 

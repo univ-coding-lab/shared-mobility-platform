@@ -19,9 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for LocationEventListener
- */
 @ExtendWith(MockitoExtension.class)
 class LocationEventListenerTest {
 
@@ -79,14 +76,12 @@ class LocationEventListenerTest {
 
     @Test
     void handleVehicleRented_Success() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        // When
         locationEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(locationService).saveLocation(locationCaptor.capture());
         verify(acknowledgment).acknowledge();
@@ -101,14 +96,12 @@ class LocationEventListenerTest {
 
     @Test
     void handleVehicleReturned_Success() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        // When
         locationEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(locationService).saveLocation(locationCaptor.capture());
         verify(acknowledgment).acknowledge();
@@ -123,14 +116,12 @@ class LocationEventListenerTest {
 
     @Test
     void handleVehicleMoved_Success() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         ArgumentCaptor<Location> locationCaptor = ArgumentCaptor.forClass(Location.class);
 
-        // When
         locationEventListener.handleVehicleMoved(vehicleMovedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-789");
         verify(locationService).saveLocation(locationCaptor.capture());
         verify(acknowledgment).acknowledge();
@@ -147,28 +138,25 @@ class LocationEventListenerTest {
 
     @Test
     void handleVehicleRented_DuplicateEvent_ShouldSkip() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        // When
         locationEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(locationService, never()).saveLocation(any());
         verify(acknowledgment).acknowledge();
     }
 
     @Test
     void handleVehicleMoved_ServiceException_ShouldNotAcknowledge() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doThrow(new RuntimeException("Database error")).when(locationService).saveLocation(any());
 
-        // When & Then
         try {
             locationEventListener.handleVehicleMoved(vehicleMovedEvent, 0, 100L, acknowledgment);
         } catch (RuntimeException e) {
-            // Expected exception
+
         }
 
         verify(acknowledgment, never()).acknowledge();

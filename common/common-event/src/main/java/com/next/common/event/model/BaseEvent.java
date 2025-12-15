@@ -9,9 +9,6 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Abstract base class for domain events with common fields
- */
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -33,9 +30,6 @@ public abstract class BaseEvent implements DomainEvent {
     @JsonProperty("version")
     private String version;
 
-    /**
-     * Constructor to auto-generate event metadata
-     */
     protected BaseEvent(String eventType, String aggregateId) {
         this.eventId = UUID.randomUUID().toString();
         this.eventType = eventType;

@@ -2,9 +2,6 @@ package com.next.common.domain.exception;
 
 import java.util.Map;
 
-/**
- * Exception thrown when validation fails
- */
 public class ValidationException extends BusinessException {
 
     private Map<String, String> fieldErrors;

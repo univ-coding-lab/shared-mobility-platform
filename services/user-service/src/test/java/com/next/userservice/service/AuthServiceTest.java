@@ -65,22 +65,20 @@ class AuthServiceTest {
                 .isActive(true)
                 .isVerified(false)
                 .build();
-        // Simulate saved entity with ID
+
         user.setId("user123");
     }
 
     @Test
     void register_WithNewEmail_ShouldSucceed() {
-        // given
+
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("$2a$10$hashedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(jwtTokenProvider.createToken(anyString(), anyString())).thenReturn("jwt.token.here");
 
-        // when
         AuthResponse response = authService.register(registerRequest);
 
-        // then
         assertNotNull(response);
         assertEquals("jwt.token.here", response.getToken());
         assertEquals("user123", response.getUserId());
@@ -94,10 +92,9 @@ class AuthServiceTest {
 
     @Test
     void register_WithExistingEmail_ShouldThrowValidationException() {
-        // given
+
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-        // when & then
         assertThrows(ValidationException.class, () -> authService.register(registerRequest));
         verify(userRepository).existsByEmail("test@example.com");
         verify(userRepository, never()).save(any(User.class));
@@ -105,16 +102,14 @@ class AuthServiceTest {
 
     @Test
     void login_WithValidCredentials_ShouldSucceed() {
-        // given
+
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(jwtTokenProvider.createToken(anyString(), anyString())).thenReturn("jwt.token.here");
 
-        // when
         AuthResponse response = authService.login(loginRequest);
 
-        // then
         assertNotNull(response);
         assertEquals("jwt.token.here", response.getToken());
         assertEquals("user123", response.getUserId());
@@ -126,10 +121,9 @@ class AuthServiceTest {
 
     @Test
     void login_WithNonExistentEmail_ShouldThrowResourceNotFoundException() {
-        // given
+
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        // when & then
         assertThrows(ResourceNotFoundException.class, () -> authService.login(loginRequest));
         verify(userRepository).findByEmail("test@example.com");
         verify(passwordEncoder, never()).matches(anyString(), anyString());
@@ -137,23 +131,21 @@ class AuthServiceTest {
 
     @Test
     void login_WithInvalidPassword_ShouldThrowValidationException() {
-        // given
+
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
-        // when & then
         assertThrows(ValidationException.class, () -> authService.login(loginRequest));
         verify(passwordEncoder).matches("password123", "$2a$10$hashedPassword");
     }
 
     @Test
     void login_WithInactiveAccount_ShouldThrowValidationException() {
-        // given
+
         user.setIsActive(false);
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
-        // when & then
         assertThrows(ValidationException.class, () -> authService.login(loginRequest));
     }
 }

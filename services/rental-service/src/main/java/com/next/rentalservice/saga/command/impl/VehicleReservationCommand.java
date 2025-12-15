@@ -8,18 +8,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-/**
- * Command for reserving a vehicle in the rental saga.
- */
 @Slf4j
 @Component
 @Order(1)
 public class VehicleReservationCommand extends AbstractSagaCommand {
 
     private static final String COMMAND_NAME = "VEHICLE_RESERVATION";
-
-    // In real implementation, inject VehicleServiceClient here
-    // private final VehicleServiceClient vehicleServiceClient;
 
     @Override
     public String getName() {
@@ -43,11 +37,6 @@ public class VehicleReservationCommand extends AbstractSagaCommand {
         log.info("Reserving vehicle: vehicleId={}, userId={}",
                 context.getVehicleId(), context.getUserId());
 
-        // TODO: In real implementation, call Vehicle Service API
-        // VehicleReservationResponse response = vehicleServiceClient.reserveVehicle(
-        //     context.getVehicleId(), context.getUserId());
-
-        // Store reservation ID for potential compensation
         String reservationId = "RES-" + context.getSagaId();
         context.putStepResult("reservationId", reservationId);
 
@@ -60,9 +49,6 @@ public class VehicleReservationCommand extends AbstractSagaCommand {
 
         String reservationId = context.getStepResult("reservationId", String.class);
         log.info("Releasing reservation: reservationId={}", reservationId);
-
-        // TODO: In real implementation, call Vehicle Service API
-        // vehicleServiceClient.releaseReservation(reservationId);
 
         return SagaCommandResult.success(COMMAND_NAME, SagaState.VEHICLE_RELEASED);
     }

@@ -7,9 +7,6 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Result wrapper for Saga command execution
- */
 @Getter
 @Builder
 public class SagaCommandResult {

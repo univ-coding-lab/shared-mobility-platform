@@ -1,8 +1,5 @@
 package com.next.rentalservice.saga.exception;
 
-/**
- * Exception for Saga command execution failures
- */
 public class SagaCommandException extends SagaException {
 
     private final String commandName;

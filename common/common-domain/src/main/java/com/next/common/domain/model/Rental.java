@@ -10,9 +10,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-/**
- * Rental domain model representing a vehicle rental transaction
- */
 @Entity
 @Table(name = "rentals")
 @Getter
@@ -87,9 +84,6 @@ public class Rental extends BaseEntity {
     @Column(name = "notes", length = 1000)
     private String notes;
 
-    /**
-     * Calculate rental duration in minutes
-     */
     public Long calculateDuration() {
         if (startTime != null && endTime != null) {
             return Duration.between(startTime, endTime).toMinutes();
@@ -97,16 +91,10 @@ public class Rental extends BaseEntity {
         return null;
     }
 
-    /**
-     * Check if rental is active
-     */
     public boolean isActive() {
         return status == RentalStatus.ACTIVE || status == RentalStatus.PAUSED;
     }
 
-    /**
-     * Complete the rental
-     */
     public void complete(Double endLat, Double endLon, Integer endBattery) {
         this.endTime = LocalDateTime.now();
         this.endLatitude = endLat;

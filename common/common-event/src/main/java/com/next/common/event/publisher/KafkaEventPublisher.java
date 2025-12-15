@@ -9,9 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Kafka implementation of EventPublisher
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

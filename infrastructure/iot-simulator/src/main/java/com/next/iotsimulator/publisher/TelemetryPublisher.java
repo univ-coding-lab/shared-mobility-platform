@@ -14,10 +14,6 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Telemetry publisher
- * Publishes vehicle sensor data to Kafka and HTTP services
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -35,27 +31,19 @@ public class TelemetryPublisher {
     @Value("${simulator.http.enabled:true}")
     private boolean httpEnabled;
 
-    /**
-     * Publish vehicle telemetry to all channels
-     */
     public void publishTelemetry(SimulatedVehicle vehicle) {
-        // 1. Publish to Kafka (VehicleMovedEvent)
+
         publishToKafka(vehicle);
 
-        // 2. Send to Location Service via HTTP (optional)
         if (httpEnabled && vehicle.isMoving()) {
             sendLocationData(vehicle);
         }
 
-        // 3. Send to Battery Service via HTTP (optional, less frequently)
         if (httpEnabled && vehicle.needsCharging()) {
             sendBatteryData(vehicle);
         }
     }
 
-    /**
-     * Publish VehicleMovedEvent to Kafka
-     */
     private void publishToKafka(SimulatedVehicle vehicle) {
         try {
             VehicleMovedEvent event = VehicleMovedEvent.builder()
@@ -78,9 +66,6 @@ public class TelemetryPublisher {
         }
     }
 
-    /**
-     * Send location data to Location Service
-     */
     private void sendLocationData(SimulatedVehicle vehicle) {
         Map<String, Object> locationData = new HashMap<>();
         locationData.put("vehicleId", vehicle.getVehicleId());
@@ -110,16 +95,13 @@ public class TelemetryPublisher {
 
     }
 
-    /**
-     * Send battery data to Battery Service
-     */
     private void sendBatteryData(SimulatedVehicle vehicle) {
         Map<String, Object> batteryData = new HashMap<>();
         batteryData.put("vehicleId", vehicle.getVehicleId());
         batteryData.put("batteryLevel", vehicle.getBatteryLevel());
         batteryData.put("source", "IOT_DEVICE");
         batteryData.put("healthStatus", determineHealthStatus(vehicle.getBatteryLevel()));
-        batteryData.put("estimatedRangeKm", vehicle.getBatteryLevel() * 2); // Simple formula
+        batteryData.put("estimatedRangeKm", vehicle.getBatteryLevel() * 2);
 
         webClientBuilder.build()
                 .post()
@@ -138,9 +120,6 @@ public class TelemetryPublisher {
                 );
     }
 
-    /**
-     * Determine battery health status
-     */
     private String determineHealthStatus(int batteryLevel) {
         if (batteryLevel >= 80) return "GOOD";
         if (batteryLevel >= 50) return "FAIR";

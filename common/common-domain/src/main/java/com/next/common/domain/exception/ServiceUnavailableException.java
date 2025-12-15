@@ -1,8 +1,5 @@
 package com.next.common.domain.exception;
 
-/**
- * Exception thrown when a service is temporarily unavailable
- */
 public class ServiceUnavailableException extends BusinessException {
 
     public ServiceUnavailableException(String serviceName) {

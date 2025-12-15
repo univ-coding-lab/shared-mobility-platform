@@ -47,13 +47,11 @@ class RentalServiceTest {
 
     @Test
     void startRental_ShouldCreateRentalAndPublishEvent() {
-        // given
+
         when(rentalRepository.save(any(Rental.class))).thenReturn(rental);
 
-        // when
         Rental result = rentalService.startRental("user-1", "vehicle-1", 37.5665, 126.9780, 85);
 
-        // then
         assertNotNull(result);
         assertEquals(RentalStatus.ACTIVE, result.getStatus());
         verify(rentalRepository).save(any(Rental.class));
@@ -62,14 +60,12 @@ class RentalServiceTest {
 
     @Test
     void endRental_WithValidId_ShouldCompleteRentalAndPublishEvent() {
-        // given
+
         when(rentalRepository.findById("rental-1")).thenReturn(Optional.of(rental));
         when(rentalRepository.save(any(Rental.class))).thenReturn(rental);
 
-        // when
         Rental result = rentalService.endRental("rental-1", 37.5700, 126.9800, 60);
 
-        // then
         assertNotNull(result);
         verify(rentalRepository).findById("rental-1");
         verify(rentalRepository).save(rental);
@@ -78,10 +74,9 @@ class RentalServiceTest {
 
     @Test
     void endRental_WithInvalidId_ShouldThrowResourceNotFoundException() {
-        // given
+
         when(rentalRepository.findById("invalid-id")).thenReturn(Optional.empty());
 
-        // when & then
         assertThrows(ResourceNotFoundException.class, () ->
             rentalService.endRental("invalid-id", 37.5700, 126.9800, 60));
         verify(rentalRepository).findById("invalid-id");
@@ -90,13 +85,11 @@ class RentalServiceTest {
 
     @Test
     void getRental_WithValidId_ShouldReturnRental() {
-        // given
+
         when(rentalRepository.findById("rental-1")).thenReturn(Optional.of(rental));
 
-        // when
         Rental result = rentalService.getRental("rental-1");
 
-        // then
         assertNotNull(result);
         assertEquals("rental-1", result.getId());
         verify(rentalRepository).findById("rental-1");
@@ -104,10 +97,9 @@ class RentalServiceTest {
 
     @Test
     void getRental_WithInvalidId_ShouldThrowResourceNotFoundException() {
-        // given
+
         when(rentalRepository.findById("invalid-id")).thenReturn(Optional.empty());
 
-        // when & then
         assertThrows(ResourceNotFoundException.class, () -> rentalService.getRental("invalid-id"));
         verify(rentalRepository).findById("invalid-id");
     }

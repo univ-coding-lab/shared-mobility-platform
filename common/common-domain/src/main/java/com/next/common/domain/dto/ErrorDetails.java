@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-/**
- * Error details for API responses
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -26,9 +23,6 @@ public class ErrorDetails {
 
     private String trace;
 
-    /**
-     * Create error details with code and message
-     */
     public static ErrorDetails of(String code, String message) {
         return ErrorDetails.builder()
                 .code(code)
@@ -36,9 +30,6 @@ public class ErrorDetails {
                 .build();
     }
 
-    /**
-     * Create error details with field validation errors
-     */
     public static ErrorDetails withFieldErrors(String code, String message, Map<String, String> fieldErrors) {
         return ErrorDetails.builder()
                 .code(code)

@@ -7,10 +7,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 
-/**
- * Battery log domain model for tracking vehicle battery status
- * Stored in MongoDB for time-series data
- */
 @Document(collection = "battery_logs")
 @Getter
 @Setter
@@ -29,45 +25,36 @@ public class BatteryLog {
     private LocalDateTime timestamp;
 
     @Indexed
-    private Integer batteryLevel; // 0-100 percentage
+    private Integer batteryLevel;
 
-    private Double voltage; // Volts
+    private Double voltage;
 
-    private Double current; // Amperes
+    private Double current;
 
-    private Double temperature; // Celsius
+    private Double temperature;
 
     private Integer cycleCount;
 
-    private String healthStatus; // GOOD, FAIR, POOR, CRITICAL
+    private String healthStatus;
 
     private Boolean isCharging;
 
     private Long estimatedRangeKm;
 
-    private Long estimatedTimeToFullCharge; // minutes
+    private Long estimatedTimeToFullCharge;
 
     private String chargingStationId;
 
-    private String source; // IOT_DEVICE, MANUAL, ESTIMATED
+    private String source;
 
-    /**
-     * Check if battery is critically low
-     */
     public boolean isCriticallyLow() {
         return batteryLevel != null && batteryLevel < 10;
     }
 
-    /**
-     * Check if battery needs charging
-     */
     public boolean needsCharging() {
         return batteryLevel != null && batteryLevel < 20;
     }
 
-    /**
-     * Create battery log
-     */
     public static BatteryLog of(String vehicleId, Integer level) {
         BatteryLog log = new BatteryLog();
         log.setVehicleId(vehicleId);

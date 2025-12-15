@@ -7,9 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Event published when vehicle location changes significantly
- */
 @Data
 @SuperBuilder
 @NoArgsConstructor

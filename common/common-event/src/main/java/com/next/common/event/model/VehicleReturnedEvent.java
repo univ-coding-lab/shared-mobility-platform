@@ -7,9 +7,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-/**
- * Event published when a vehicle is returned
- */
 @Data
 @SuperBuilder
 @NoArgsConstructor

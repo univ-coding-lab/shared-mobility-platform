@@ -10,18 +10,12 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * Command for processing payment in the rental saga.
- */
 @Slf4j
 @Component
 @Order(2)
 public class PaymentProcessingCommand extends AbstractSagaCommand {
 
     private static final String COMMAND_NAME = "PAYMENT_PROCESSING";
-
-    // In real implementation, inject PaymentServiceClient here
-    // private final PaymentServiceClient paymentServiceClient;
 
     @Override
     public String getName() {
@@ -43,11 +37,6 @@ public class PaymentProcessingCommand extends AbstractSagaCommand {
         log.info("Processing payment: userId={}, rentalId={}",
                 context.getUserId(), context.getRentalId());
 
-        // TODO: In real implementation, call Payment Service API
-        // PaymentResponse response = paymentServiceClient.processPayment(
-        //     context.getUserId(), context.getRentalId());
-
-        // Store payment transaction ID for potential compensation
         String transactionId = "TXN-" + context.getSagaId();
         context.putStepResult("transactionId", transactionId);
 
@@ -61,9 +50,6 @@ public class PaymentProcessingCommand extends AbstractSagaCommand {
 
         String transactionId = context.getStepResult("transactionId", String.class);
         log.info("Refunding transaction: transactionId={}", transactionId);
-
-        // TODO: In real implementation, call Payment Service API
-        // paymentServiceClient.refundPayment(transactionId);
 
         return SagaCommandResult.success(COMMAND_NAME, SagaState.PAYMENT_REFUNDED);
     }

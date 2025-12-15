@@ -70,10 +70,9 @@ class VehicleControllerTest {
 
     @Test
     void getAvailableVehicles_ShouldReturn200WithVehicleList() throws Exception {
-        // given
+
         when(vehicleService.getAvailableVehicles()).thenReturn(availableVehicles);
 
-        // when & then
         mockMvc.perform(get("/vehicles/available"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -86,10 +85,9 @@ class VehicleControllerTest {
 
     @Test
     void getVehicle_WithValidId_ShouldReturn200() throws Exception {
-        // given
+
         when(vehicleService.getVehicle("vehicle-1")).thenReturn(vehicle);
 
-        // when & then
         mockMvc.perform(get("/vehicles/vehicle-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -101,7 +99,7 @@ class VehicleControllerTest {
 
     @Test
     void createVehicle_WithValidData_ShouldReturn200() throws Exception {
-        // given
+
         Vehicle newVehicle = Vehicle.builder()
                 .serialNumber("SN-NEW")
                 .type(VehicleType.E_SCOOTER)
@@ -112,7 +110,6 @@ class VehicleControllerTest {
 
         when(vehicleService.createVehicle(any(Vehicle.class))).thenReturn(vehicle);
 
-        // when & then
         mockMvc.perform(post("/vehicles")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newVehicle)))
@@ -124,10 +121,9 @@ class VehicleControllerTest {
 
     @Test
     void lockVehicle_WithValidId_ShouldReturn200() throws Exception {
-        // given
+
         doNothing().when(vehicleService).lockVehicle(anyString());
 
-        // when & then
         mockMvc.perform(post("/vehicles/vehicle-1/lock"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -136,10 +132,9 @@ class VehicleControllerTest {
 
     @Test
     void unlockVehicle_WithValidId_ShouldReturn200() throws Exception {
-        // given
+
         doNothing().when(vehicleService).unlockVehicle(anyString());
 
-        // when & then
         mockMvc.perform(post("/vehicles/vehicle-1/unlock"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))

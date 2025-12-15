@@ -7,9 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-/**
- * User domain model representing a system user
- */
 @Entity
 @Table(name = "users")
 @Getter
@@ -71,23 +68,14 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private java.time.LocalDateTime lastLoginAt;
 
-    /**
-     * Get full name
-     */
     public String getFullName() {
         return firstName + " " + lastName;
     }
 
-    /**
-     * Check if user can rent vehicles
-     */
     public boolean canRent() {
         return isActive && isVerified && walletBalance >= 0;
     }
 
-    /**
-     * Update login timestamp
-     */
     public void updateLastLogin() {
         this.lastLoginAt = java.time.LocalDateTime.now();
     }

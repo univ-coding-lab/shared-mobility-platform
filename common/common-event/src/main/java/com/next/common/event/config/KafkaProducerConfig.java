@@ -14,9 +14,6 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Kafka producer configuration for publishing domain events
- */
 @Configuration
 public class KafkaProducerConfig {
 
@@ -30,18 +27,15 @@ public class KafkaProducerConfig {
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
 
-        // Idempotence for exactly-once semantics
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
         config.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
 
-        // Performance tuning
         config.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
         config.put(ProducerConfig.LINGER_MS_CONFIG, 10);
         config.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
 
-        // JSON serializer configuration
         config.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
 
         return new DefaultKafkaProducerFactory<>(config);

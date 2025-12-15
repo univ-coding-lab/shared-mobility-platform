@@ -8,9 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * Record of a saga step execution
- */
 @Data
 @Builder
 @NoArgsConstructor

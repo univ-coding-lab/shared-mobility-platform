@@ -16,10 +16,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-/**
- * Kafka event listener for Location Service
- * Handles vehicle location tracking events
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -28,14 +24,6 @@ public class LocationEventListener {
     private final LocationService locationService;
     private final IdempotencyChecker idempotencyChecker;
 
-    /**
-     * Handle VehicleRentedEvent - Save rental start location
-     *
-     * @param event VehicleRentedEvent from Rental Service
-     * @param partition Kafka partition number
-     * @param offset Kafka offset
-     * @param acknowledgment Manual acknowledgment for Kafka consumer
-     */
     @KafkaListener(
             topics = KafkaTopics.VEHICLE_RENTED,
             groupId = "${spring.kafka.consumer.group-id}",
@@ -50,7 +38,6 @@ public class LocationEventListener {
         log.info("Received VehicleRentedEvent: eventId={}, vehicleId={}, rentalId={}, partition={}, offset={}",
                 event.getEventId(), event.getVehicleId(), event.getRentalId(), partition, offset);
 
-        // Check idempotency - prevent duplicate processing
         if (!idempotencyChecker.processIdempotently(event.getEventId())) {
             log.warn("Duplicate VehicleRentedEvent detected, skipping: eventId={}", event.getEventId());
             acknowledgment.acknowledge();
@@ -58,7 +45,7 @@ public class LocationEventListener {
         }
 
         try {
-            // Create location record for rental start
+
             Location location = Location.builder()
                     .vehicleId(event.getVehicleId())
                     .latitude(event.getStartLatitude())
@@ -78,18 +65,10 @@ public class LocationEventListener {
         } catch (Exception e) {
             log.error("Failed to process VehicleRentedEvent: eventId={}, vehicleId={}, error={}",
                     event.getEventId(), event.getVehicleId(), e.getMessage(), e);
-            throw e; // Do NOT acknowledge - message will be redelivered
+            throw e;
         }
     }
 
-    /**
-     * Handle VehicleReturnedEvent - Save rental end location
-     *
-     * @param event VehicleReturnedEvent from Rental Service
-     * @param partition Kafka partition number
-     * @param offset Kafka offset
-     * @param acknowledgment Manual acknowledgment for Kafka consumer
-     */
     @KafkaListener(
             topics = KafkaTopics.VEHICLE_RETURNED,
             groupId = "${spring.kafka.consumer.group-id}",
@@ -104,7 +83,6 @@ public class LocationEventListener {
         log.info("Received VehicleReturnedEvent: eventId={}, vehicleId={}, rentalId={}, partition={}, offset={}",
                 event.getEventId(), event.getVehicleId(), event.getRentalId(), partition, offset);
 
-        // Check idempotency - prevent duplicate processing
         if (!idempotencyChecker.processIdempotently(event.getEventId())) {
             log.warn("Duplicate VehicleReturnedEvent detected, skipping: eventId={}", event.getEventId());
             acknowledgment.acknowledge();
@@ -112,7 +90,7 @@ public class LocationEventListener {
         }
 
         try {
-            // Create location record for rental end
+
             Location location = Location.builder()
                     .vehicleId(event.getVehicleId())
                     .latitude(event.getEndLatitude())
@@ -132,18 +110,10 @@ public class LocationEventListener {
         } catch (Exception e) {
             log.error("Failed to process VehicleReturnedEvent: eventId={}, vehicleId={}, error={}",
                     event.getEventId(), event.getVehicleId(), e.getMessage(), e);
-            throw e; // Do NOT acknowledge - message will be redelivered
+            throw e;
         }
     }
 
-    /**
-     * Handle VehicleMovedEvent - Save real-time location updates
-     *
-     * @param event VehicleMovedEvent from IoT or Rental Service
-     * @param partition Kafka partition number
-     * @param offset Kafka offset
-     * @param acknowledgment Manual acknowledgment for Kafka consumer
-     */
     @KafkaListener(
             topics = KafkaTopics.VEHICLE_MOVED,
             groupId = "${spring.kafka.consumer.group-id}",
@@ -158,7 +128,6 @@ public class LocationEventListener {
         log.debug("Received VehicleMovedEvent: eventId={}, vehicleId={}, lat={}, lon={}, partition={}, offset={}",
                 event.getEventId(), event.getVehicleId(), event.getLatitude(), event.getLongitude(), partition, offset);
 
-        // Check idempotency - prevent duplicate processing
         if (!idempotencyChecker.processIdempotently(event.getEventId())) {
             log.debug("Duplicate VehicleMovedEvent detected, skipping: eventId={}", event.getEventId());
             acknowledgment.acknowledge();
@@ -166,7 +135,7 @@ public class LocationEventListener {
         }
 
         try {
-            // Create location record for real-time tracking
+
             Location location = Location.builder()
                     .vehicleId(event.getVehicleId())
                     .latitude(event.getLatitude())
@@ -188,7 +157,7 @@ public class LocationEventListener {
         } catch (Exception e) {
             log.error("Failed to process VehicleMovedEvent: eventId={}, vehicleId={}, error={}",
                     event.getEventId(), event.getVehicleId(), e.getMessage(), e);
-            throw e; // Do NOT acknowledge - message will be redelivered
+            throw e;
         }
     }
 }

@@ -60,10 +60,9 @@ class AuthControllerTest {
 
     @Test
     void register_WithValidRequest_ShouldReturn200() throws Exception {
-        // given
+
         when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse);
 
-        // when & then
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
@@ -77,10 +76,9 @@ class AuthControllerTest {
 
     @Test
     void register_WithInvalidEmail_ShouldReturn400() throws Exception {
-        // given
+
         registerRequest.setEmail("invalid-email");
 
-        // when & then
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))
@@ -89,10 +87,9 @@ class AuthControllerTest {
 
     @Test
     void login_WithValidRequest_ShouldReturn200() throws Exception {
-        // given
+
         when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
 
-        // when & then
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))

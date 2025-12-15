@@ -13,9 +13,6 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Kafka consumer configuration for subscribing to domain events
- */
 @Configuration
 public class KafkaConsumerConfig {
 
@@ -33,12 +30,10 @@ public class KafkaConsumerConfig {
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
 
-        // Consumer reliability
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 100);
 
-        // JSON deserializer configuration
         config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.next.common.event.model");
         config.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         config.put(JsonDeserializer.VALUE_DEFAULT_TYPE, "com.next.common.event.model.BaseEvent");
@@ -52,11 +47,9 @@ public class KafkaConsumerConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
 
-        // Enable manual acknowledgment for better control
         factory.getContainerProperties().setAckMode(
                 org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL);
 
-        // Concurrency for parallel processing
         factory.setConcurrency(3);
 
         return factory;

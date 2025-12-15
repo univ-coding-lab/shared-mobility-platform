@@ -41,13 +41,11 @@ class LocationServiceTest {
 
     @Test
     void saveLocation_ShouldSaveAndCache() {
-        // given
+
         when(locationRepository.save(any(Location.class))).thenReturn(location);
 
-        // when
         Location result = locationService.saveLocation(location);
 
-        // then
         assertNotNull(result);
         verify(locationRepository).save(location);
         verify(valueOperations).set(anyString(), eq(location), any());
@@ -55,13 +53,11 @@ class LocationServiceTest {
 
     @Test
     void getLatestLocation_FromCache_ShouldReturnCachedLocation() {
-        // given
+
         when(valueOperations.get("location:vehicle-1")).thenReturn(location);
 
-        // when
         Location result = locationService.getLatestLocation("vehicle-1");
 
-        // then
         assertNotNull(result);
         assertEquals("vehicle-1", result.getVehicleId());
         verify(valueOperations).get("location:vehicle-1");
@@ -70,14 +66,12 @@ class LocationServiceTest {
 
     @Test
     void getLatestLocation_CacheMiss_ShouldQueryDatabase() {
-        // given
+
         when(valueOperations.get("location:vehicle-1")).thenReturn(null);
         when(locationRepository.findTopByVehicleIdOrderByTimestampDesc("vehicle-1")).thenReturn(location);
 
-        // when
         Location result = locationService.getLatestLocation("vehicle-1");
 
-        // then
         assertNotNull(result);
         verify(valueOperations).get("location:vehicle-1");
         verify(locationRepository).findTopByVehicleIdOrderByTimestampDesc("vehicle-1");

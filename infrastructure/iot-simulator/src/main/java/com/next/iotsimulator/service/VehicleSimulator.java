@@ -13,10 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Vehicle simulator service
- * Manages simulated vehicles and updates their telemetry
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,9 +31,6 @@ public class VehicleSimulator {
     @Value("${simulator.moving.probability:0.3}")
     private double movingProbability;
 
-    /**
-     * Initialize simulated vehicles on startup
-     */
     @PostConstruct
     public void initialize() {
         log.info("Initializing IoT Simulator with {} vehicles", vehicleCount);
@@ -53,35 +46,28 @@ public class VehicleSimulator {
         log.info("IoT Simulator initialized successfully with {} vehicles", vehicles.size());
     }
 
-    /**
-     * Update vehicle telemetry periodically
-     * Runs every N seconds (configured by simulator.update.interval)
-     */
     @Scheduled(fixedDelayString = "${simulator.update.interval:10000}")
     public void updateVehicles() {
         log.debug("Updating telemetry for {} vehicles", vehicles.size());
 
         for (SimulatedVehicle vehicle : vehicles) {
             try {
-                // Randomly start/stop vehicle movement
+
                 if (!vehicle.isMoving() && random.nextDouble() < movingProbability) {
                     vehicle.startRental("rental-" + System.currentTimeMillis());
                     log.info("Vehicle {} started moving (rental started)", vehicle.getVehicleId());
                 } else if (vehicle.isMoving() && random.nextDouble() < 0.1) {
-                    // 10% chance to stop
+
                     vehicle.endRental();
                     log.info("Vehicle {} stopped (rental ended)", vehicle.getVehicleId());
                 }
 
-                // Move vehicle if it's in motion
                 if (vehicle.isMoving()) {
                     vehicle.move();
                 }
 
-                // Publish telemetry to Kafka and services
                 telemetryPublisher.publishTelemetry(vehicle);
 
-                // Log battery warnings
                 if (vehicle.needsCharging() && !vehicle.isCriticallyLow()) {
                     log.warn("Vehicle {} battery low: {}%", vehicle.getVehicleId(), vehicle.getBatteryLevel());
                 } else if (vehicle.isCriticallyLow()) {
@@ -94,30 +80,21 @@ public class VehicleSimulator {
         }
     }
 
-    /**
-     * Charge vehicles periodically (simulate charging stations)
-     */
-    @Scheduled(fixedRate = 60000) // Every minute
+    @Scheduled(fixedRate = 60000)
     public void chargeVehicles() {
         for (SimulatedVehicle vehicle : vehicles) {
             if (!vehicle.isMoving() && vehicle.getBatteryLevel() < 80) {
-                // Charge stationary vehicles by 10%
+
                 vehicle.charge(10);
                 log.debug("Charged vehicle {} to {}%", vehicle.getVehicleId(), vehicle.getBatteryLevel());
             }
         }
     }
 
-    /**
-     * Get all simulated vehicles
-     */
     public List<SimulatedVehicle> getVehicles() {
         return new ArrayList<>(vehicles);
     }
 
-    /**
-     * Get vehicle by ID
-     */
     public SimulatedVehicle getVehicle(String vehicleId) {
         return vehicles.stream()
                 .filter(v -> v.getVehicleId().equals(vehicleId))
@@ -125,9 +102,6 @@ public class VehicleSimulator {
                 .orElse(null);
     }
 
-    /**
-     * Manually start rental for a vehicle
-     */
     public void startRental(String vehicleId, String rentalId) {
         SimulatedVehicle vehicle = getVehicle(vehicleId);
         if (vehicle != null) {
@@ -136,9 +110,6 @@ public class VehicleSimulator {
         }
     }
 
-    /**
-     * Manually end rental for a vehicle
-     */
     public void endRental(String vehicleId) {
         SimulatedVehicle vehicle = getVehicle(vehicleId);
         if (vehicle != null) {

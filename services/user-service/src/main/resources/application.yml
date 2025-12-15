@@ -60,12 +60,10 @@ management:
       prometheus:
         enabled: true
 
-# JWT Configuration
 jwt:
   secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-generation-please-change-in-production}
-  expiration: ${JWT_EXPIRATION:86400000} # 24 hours in milliseconds
+  expiration: ${JWT_EXPIRATION:86400000}
 
-# Logging
 logging:
   level:
     root: INFO

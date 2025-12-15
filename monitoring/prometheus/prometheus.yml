@@ -1,28 +1,18 @@
 global:
-  scrape_interval: 15s # Scrape metrics every 15 seconds
-  evaluation_interval: 15s # Evaluate rules every 15 seconds
+  scrape_interval: 15s
+  evaluation_interval: 15s
   external_labels:
     cluster: 'shared-mobility-platform'
     environment: 'development'
 
-# Alertmanager configuration (optional)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['alertmanager:9093']
-
-# Load alert rules
 rule_files:
   - 'alerts.yml'
 
-# Scrape configurations
 scrape_configs:
-  # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  # User Service (running on host machine)
   - job_name: 'user-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -32,7 +22,6 @@ scrape_configs:
         target_label: instance
         replacement: 'user-service'
 
-  # Vehicle Service (running on host machine)
   - job_name: 'vehicle-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -42,7 +31,6 @@ scrape_configs:
         target_label: instance
         replacement: 'vehicle-service'
 
-  # Rental Service (running on host machine)
   - job_name: 'rental-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -52,7 +40,6 @@ scrape_configs:
         target_label: instance
         replacement: 'rental-service'
 
-  # Location Service (running on host machine)
   - job_name: 'location-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -62,7 +49,6 @@ scrape_configs:
         target_label: instance
         replacement: 'location-service'
 
-  # Battery Service (running on host machine)
   - job_name: 'battery-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -72,7 +58,6 @@ scrape_configs:
         target_label: instance
         replacement: 'battery-service'
 
-  # API Gateway (running on host machine)
   - job_name: 'api-gateway'
     metrics_path: '/actuator/prometheus'
     static_configs:
@@ -82,7 +67,6 @@ scrape_configs:
         target_label: instance
         replacement: 'api-gateway'
 
-  # IoT Simulator (running on host machine)
   - job_name: 'iot-simulator'
     metrics_path: '/actuator/prometheus'
     static_configs:

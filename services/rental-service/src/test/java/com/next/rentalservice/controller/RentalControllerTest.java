@@ -45,11 +45,10 @@ class RentalControllerTest {
 
     @Test
     void startRental_WithValidParams_ShouldReturn200() throws Exception {
-        // given
+
         when(rentalService.startRental(anyString(), anyString(), anyDouble(), anyDouble(), anyInt()))
                 .thenReturn(rental);
 
-        // when & then
         mockMvc.perform(post("/rentals/start")
                         .param("userId", "user-1")
                         .param("vehicleId", "vehicle-1")
@@ -65,12 +64,11 @@ class RentalControllerTest {
 
     @Test
     void endRental_WithValidParams_ShouldReturn200() throws Exception {
-        // given
+
         rental.setStatus(RentalStatus.COMPLETED);
         when(rentalService.endRental(anyString(), anyDouble(), anyDouble(), anyInt()))
                 .thenReturn(rental);
 
-        // when & then
         mockMvc.perform(post("/rentals/rental-1/end")
                         .param("lat", "37.5700")
                         .param("lon", "126.9800")
@@ -83,10 +81,9 @@ class RentalControllerTest {
 
     @Test
     void getRental_WithValidId_ShouldReturn200() throws Exception {
-        // given
+
         when(rentalService.getRental("rental-1")).thenReturn(rental);
 
-        // when & then
         mockMvc.perform(get("/rentals/rental-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))

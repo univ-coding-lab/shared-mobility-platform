@@ -7,9 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
-/**
- * Vehicle domain model representing a shared mobility vehicle
- */
 @Entity
 @Table(name = "vehicles")
 @Getter
@@ -71,25 +68,16 @@ public class Vehicle extends BaseEntity {
     @Column(name = "notes", length = 1000)
     private String notes;
 
-    /**
-     * Check if vehicle is available for rental
-     */
     public boolean isAvailable() {
         return status == VehicleStatus.AVAILABLE && batteryLevel != null && batteryLevel > 20;
     }
 
-    /**
-     * Update vehicle location
-     */
     public void updateLocation(Double latitude, Double longitude) {
         this.lastKnownLatitude = latitude;
         this.lastKnownLongitude = longitude;
         this.lastLocationUpdate = java.time.LocalDateTime.now();
     }
 
-    /**
-     * Update battery level
-     */
     public void updateBatteryLevel(Integer level) {
         this.batteryLevel = level;
     }

@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-/**
- * Paginated response wrapper
- */
 @Data
 @Builder
 @NoArgsConstructor
@@ -32,9 +29,6 @@ public class PageResponse<T> {
 
     private boolean empty;
 
-    /**
-     * Create page response from content and pagination info
-     */
     public static <T> PageResponse<T> of(List<T> content, int pageNumber, int pageSize, long totalElements) {
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 

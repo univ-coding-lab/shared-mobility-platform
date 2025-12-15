@@ -2,9 +2,6 @@ package com.next.common.domain.exception;
 
 import lombok.Getter;
 
-/**
- * Base business exception for domain-specific errors
- */
 @Getter
 public class BusinessException extends RuntimeException {
 

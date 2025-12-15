@@ -7,36 +7,25 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-# Server configuration
 server:
   port: ${IOT_SIMULATOR_PORT:8086}
 
-# Simulator configuration
 simulator:
-  # Number of vehicles to simulate
   vehicle:
     count: ${SIMULATOR_VEHICLE_COUNT:10}
-
-  # Update interval in milliseconds (how often to update vehicle telemetry)
   update:
-    interval: ${SIMULATOR_UPDATE_INTERVAL:10000} # 10 seconds
-
-  # Probability that a stationary vehicle will start moving
+    interval: ${SIMULATOR_UPDATE_INTERVAL:10000}
   moving:
-    probability: ${SIMULATOR_MOVING_PROBABILITY:0.3} # 30%
-
-  # Enable/disable HTTP publishing to services
+    probability: ${SIMULATOR_MOVING_PROBABILITY:0.3}
   http:
     enabled: ${SIMULATOR_HTTP_ENABLED:true}
 
-# Service URLs for HTTP publishing
 services:
   location:
     url: ${LOCATION_SERVICE_URL:http://localhost:8084}
   battery:
     url: ${BATTERY_SERVICE_URL:http://localhost:8085}
 
-# Logging
 logging:
   level:
     root: INFO
@@ -45,7 +34,6 @@ logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# Management endpoints
 management:
   endpoints:
     web:

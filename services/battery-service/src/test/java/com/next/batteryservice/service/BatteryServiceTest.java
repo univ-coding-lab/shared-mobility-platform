@@ -44,14 +44,12 @@ class BatteryServiceTest {
 
     @Test
     void saveBatteryLog_WithNormalLevel_ShouldSaveWithoutEvent() {
-        // given
+
         batteryLog.setBatteryLevel(50);
         when(batteryLogRepository.save(any(BatteryLog.class))).thenReturn(batteryLog);
 
-        // when
         BatteryLog result = batteryService.saveBatteryLog(batteryLog);
 
-        // then
         assertNotNull(result);
         verify(batteryLogRepository).save(batteryLog);
         verify(eventPublisher, never()).publish(anyString(), anyString(), any());
@@ -59,14 +57,12 @@ class BatteryServiceTest {
 
     @Test
     void saveBatteryLog_WithLowLevel_ShouldSaveAndPublishEvent() {
-        // given
+
         batteryLog.setBatteryLevel(15);
         when(batteryLogRepository.save(any(BatteryLog.class))).thenReturn(batteryLog);
 
-        // when
         BatteryLog result = batteryService.saveBatteryLog(batteryLog);
 
-        // then
         assertNotNull(result);
         verify(batteryLogRepository).save(batteryLog);
         verify(eventPublisher).publish(anyString(), anyString(), any());
@@ -74,13 +70,11 @@ class BatteryServiceTest {
 
     @Test
     void getLatestBatteryLog_ShouldReturnLatestLog() {
-        // given
+
         when(batteryLogRepository.findTopByVehicleIdOrderByTimestampDesc("vehicle-1")).thenReturn(batteryLog);
 
-        // when
         BatteryLog result = batteryService.getLatestBatteryLog("vehicle-1");
 
-        // then
         assertNotNull(result);
         assertEquals("vehicle-1", result.getVehicleId());
         verify(batteryLogRepository).findTopByVehicleIdOrderByTimestampDesc("vehicle-1");

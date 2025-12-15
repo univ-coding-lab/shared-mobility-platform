@@ -17,9 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for VehicleEventListener
- */
 @ExtendWith(MockitoExtension.class)
 class VehicleEventListenerTest {
 
@@ -65,14 +62,12 @@ class VehicleEventListenerTest {
 
     @Test
     void handleVehicleRented_Success() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doNothing().when(vehicleService).updateVehicleStatus(any(), any());
 
-        // When
         vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.IN_USE);
         verify(acknowledgment).acknowledge();
@@ -80,45 +75,40 @@ class VehicleEventListenerTest {
 
     @Test
     void handleVehicleRented_DuplicateEvent_ShouldSkip() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        // When
         vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-123");
         verify(vehicleService, never()).updateVehicleStatus(any(), any());
-        verify(acknowledgment).acknowledge(); // Should still acknowledge to move offset
+        verify(acknowledgment).acknowledge();
     }
 
     @Test
     void handleVehicleRented_ServiceException_ShouldNotAcknowledge() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doThrow(new RuntimeException("Database error")).when(vehicleService).updateVehicleStatus(any(), any());
 
-        // When & Then
         try {
             vehicleEventListener.handleVehicleRented(vehicleRentedEvent, 0, 100L, acknowledgment);
         } catch (RuntimeException e) {
-            // Expected exception
+
         }
 
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.IN_USE);
-        verify(acknowledgment, never()).acknowledge(); // Should NOT acknowledge on error
+        verify(acknowledgment, never()).acknowledge();
     }
 
     @Test
     void handleVehicleReturned_Success() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doNothing().when(vehicleService).updateVehicleStatus(any(), any());
 
-        // When
         vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.AVAILABLE);
         verify(acknowledgment).acknowledge();
@@ -126,32 +116,29 @@ class VehicleEventListenerTest {
 
     @Test
     void handleVehicleReturned_DuplicateEvent_ShouldSkip() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(false);
 
-        // When
         vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
 
-        // Then
         verify(idempotencyChecker).processIdempotently("event-456");
         verify(vehicleService, never()).updateVehicleStatus(any(), any());
-        verify(acknowledgment).acknowledge(); // Should still acknowledge to move offset
+        verify(acknowledgment).acknowledge();
     }
 
     @Test
     void handleVehicleReturned_ServiceException_ShouldNotAcknowledge() {
-        // Given
+
         when(idempotencyChecker.processIdempotently(any())).thenReturn(true);
         doThrow(new RuntimeException("Database error")).when(vehicleService).updateVehicleStatus(any(), any());
 
-        // When & Then
         try {
             vehicleEventListener.handleVehicleReturned(vehicleReturnedEvent, 0, 100L, acknowledgment);
         } catch (RuntimeException e) {
-            // Expected exception
+
         }
 
         verify(vehicleService).updateVehicleStatus("vehicle-1", VehicleStatus.AVAILABLE);
-        verify(acknowledgment, never()).acknowledge(); // Should NOT acknowledge on error
+        verify(acknowledgment, never()).acknowledge();
     }
 }
