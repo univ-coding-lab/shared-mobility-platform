@@ -6,7 +6,7 @@
 set -e
 
 TOTAL_REQUESTS=1000
-CONCURRENT=100
+CONCURRENT=1000
 
 echo "============================================"
 echo "Performance Load Test"
@@ -42,7 +42,8 @@ echo "Requests: $TOTAL_REQUESTS, Concurrent: $CONCURRENT"
 echo ""
 
 echo "⏳ Running load test..."
-ab -n $TOTAL_REQUESTS -c $CONCURRENT "$ENDPOINT1" > /tmp/ab_result_vehicles.txt 2>&1
+# -l flag: Accept variable document length (don't count length differences as failures)
+ab -l -n $TOTAL_REQUESTS -c $CONCURRENT "$ENDPOINT1" > /tmp/ab_result_vehicles.txt 2>&1
 
 AVG_TIME1=$(grep "Time per request" /tmp/ab_result_vehicles.txt | head -1 | awk '{print $4}')
 FAILED1=$(grep "Failed requests" /tmp/ab_result_vehicles.txt | awk '{print $3}')
@@ -121,7 +122,8 @@ echo "Requests: $RENTAL_REQUESTS (limited for DB write test)"
 echo ""
 
 echo "⏳ Running rental load test..."
-ab -n $RENTAL_REQUESTS -c 10 -p /tmp/rental_request.json -T "application/json" \
+# -l flag: Accept variable document length (don't count length differences as failures)
+ab -l -n $RENTAL_REQUESTS -c 50 -p /tmp/rental_request.json -T "application/json" \
   "http://localhost:8083/api/v1/rentals/start" > /tmp/ab_result_rental.txt 2>&1
 
 AVG_TIME2=$(grep "Time per request" /tmp/ab_result_rental.txt | head -1 | awk '{print $4}')
@@ -143,7 +145,7 @@ echo "  Requests: $TOTAL_REQUESTS, Concurrent: $CONCURRENT"
 echo "  Average: ${AVG_TIME1}ms, Failed: $FAILED1, RPS: $REQ_PER_SEC1"
 echo ""
 echo "Test 2 (Rental Start - POST):"
-echo "  Requests: $RENTAL_REQUESTS, Concurrent: 10"
+echo "  Requests: $RENTAL_REQUESTS, Concurrent: 50"
 echo "  Average: ${AVG_TIME2}ms, Failed: $FAILED2, RPS: $REQ_PER_SEC2"
 echo ""
 
